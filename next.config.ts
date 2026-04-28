@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   reactStrictMode: true,
+  // Emit a self-contained server bundle under `.next/standalone/` so the
+  // production image only needs the standalone bundle + `.next/static`
+  // + `public/`. Drops the runtime image from ~1 GB to ~250 MB.
+  output: "standalone",
   outputFileTracingRoot: __dirname,
   transpilePackages: [
     "antd",

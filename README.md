@@ -130,13 +130,15 @@ Override the source path with `node scripts/migrate-posts.mjs --source /path/to/
 - [x] NextAuth v5 with Entra + Google + dev Credentials
 - [x] Auth-gated `/app/*` admin dashboard with ProLayout, project rooms, blog admin table, contact inbox stub
 
-### Phase 2 — Kubernetes + Cloudflare Tunnel (next round)
+### Phase 2 — Kubernetes + Cloudflare Tunnel (shipped)
 
-- [ ] Multi-arch `Dockerfile` (linux/amd64 + linux/arm64)
-- [ ] `.github/workflows/build.yml` → `buildx` → `ghcr.io/julianwiley/portal`
-- [ ] Manifests in `rpi_kubernetes/kubernetes/base-services/portal/` from `templates/new-project/`
-- [ ] `cloudflared` Deployment + Secret + ConfigMap under `rpi_kubernetes/kubernetes/base-services/cloudflared/`
-- [ ] DNS: `julianwiley.com` CNAME → `<tunnel-id>.cfargotunnel.com`
+- [x] Multi-arch `Dockerfile` (linux/amd64 + linux/arm64) with Next.js standalone output and read-only rootfs runtime
+- [x] `.github/workflows/docker.yml` → `buildx` → `ghcr.io/julianwileymac/portal` (tags `latest`, `main`, `sha-<short>`, semver on `v*.*.*` tags)
+- [x] Manifests in `rpi_kubernetes/kubernetes/base-services/portal/` (ConfigMap, placeholder Secret, Deployment with 2 replicas + spread constraint, ClusterIP Service, Ingress for `julianwiley.com` and `portal.local`)
+- [x] `cloudflared` Deployment + Secret stub + ConfigMap under `rpi_kubernetes/kubernetes/base-services/cloudflared/` routing `julianwiley.com` and `www.julianwiley.com` to `ingress-nginx`
+- [x] New `web` and `edge` namespaces added to `rpi_kubernetes/kubernetes/namespaces/namespaces.yaml`
+- [x] Both new paths registered in `rpi_kubernetes/kubernetes/kustomization.yaml`
+- [ ] One-time bootstrap (run by hand once Cloudflare account access is sorted): `cloudflared tunnel login` → `cloudflared tunnel create julianwiley-portal` → `cloudflared tunnel route dns julianwiley-portal julianwiley.com` → push the credentials JSON into `Secret/cloudflared-credentials`
 
 ### Phase 3 — Polish (future round)
 
@@ -149,17 +151,50 @@ Override the source path with `node scripts/migrate-posts.mjs --source /path/to/
 
 ## Deployment
 
-This is a **Node** server build — `next start` in a container. The marketing pages are statically generated at build time (`generateStaticParams` on `/projects/[slug]` and `/blog/[slug]`), but auth and the API routes require a server, so static export (`output: "export"`) is intentionally **not** used.
+This is a **Node** server build — `node server.js` (Next.js standalone output) in a container. The marketing pages are statically generated at build time (`generateStaticParams` on `/projects/[slug]` and `/blog/[slug]`), but auth and the API routes require a server, so static export (`output: "export"`) is intentionally **not** used.
+
+### Local
 
 ```bash
 npm run build
 npm start
 ```
 
-Production env vars (set in the k8s `Secret`):
+### Container
 
-- `AUTH_SECRET` (required)
+```bash
+docker build -t portal:dev .
+docker run --rm -p 3000:3000 \
+  -e AUTH_SECRET="$(openssl rand -base64 32)" \
+  portal:dev
+```
+
+### Kubernetes (rpi_kubernetes cluster)
+
+The full deploy is GitOps-style — push to `main`, let the
+[`docker.yml`](.github/workflows/docker.yml) workflow build and push the
+image, then either re-apply the kustomization or bump the image tag:
+
+```bash
+# In the rpi_kubernetes repo:
+kubectl apply -k kubernetes/base-services/portal/
+kubectl -n web rollout status deploy/portal
+
+# Cut over to a specific image:
+kubectl -n web set image deploy/portal portal=ghcr.io/julianwileymac/portal:sha-<short>
+```
+
+Public exposure goes through Cloudflare Tunnel (no router port-forward,
+TLS terminated at Cloudflare). See
+[`rpi_kubernetes/kubernetes/base-services/cloudflared/README.md`](https://github.com/julianwileymac/rpi_kubernetes/blob/main/kubernetes/base-services/cloudflared/README.md)
+for the one-time `cloudflared tunnel login / create / route dns` bootstrap.
+
+Production env vars (set in the k8s `Secret/portal-credentials` and
+`ConfigMap/portal-config` in the `web` namespace):
+
+- `AUTH_SECRET` (required) — `openssl rand -base64 32`
 - `AUTH_URL=https://julianwiley.com`
+- `AUTH_TRUST_HOST=true`
 - `AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET`, `AUTH_MICROSOFT_ENTRA_ID_ISSUER`
 - `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
 - `NEXT_PUBLIC_SITE_URL=https://julianwiley.com`
