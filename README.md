@@ -38,6 +38,40 @@ Sign in for the admin section with the dev credentials provider:
 
 The Microsoft / Google buttons appear automatically once their `AUTH_*` env vars are populated. The dev Credentials provider is only registered when `NODE_ENV !== "production"`.
 
+### Wiring real OAuth providers
+
+#### Google (Cloud Console)
+
+1. https://console.cloud.google.com/apis/credentials → pick or create a project (`julianwileyportal` for this project).
+2. **Create credentials → OAuth client ID → Web application**.
+3. Add **Authorized JavaScript origins**:
+   - `http://localhost:3000` and/or `http://localhost:3001` for local dev (Next picks 3001 if 3000 is taken).
+   - `https://julianwiley.com` (and `https://www.julianwiley.com` if used) for prod.
+4. Add **Authorized redirect URIs**:
+   - `http://localhost:3001/api/auth/callback/google`
+   - `https://julianwiley.com/api/auth/callback/google`
+5. Copy the client ID + secret into `.env.local`:
+   ```env
+   AUTH_GOOGLE_ID=<client-id>.apps.googleusercontent.com
+   AUTH_GOOGLE_SECRET=GOCSPX-...
+   ```
+6. Restart `npm run dev` (Next does **not** hot-reload `.env.local`).
+
+If a secret was ever pasted into chat / a screenshot / committed to git, **rotate it immediately**: same Credentials page → click the Web client → **Reset Secret** → paste the new value into `.env.local` and the cluster Secret.
+
+#### Microsoft Entra ID (Azure portal)
+
+1. https://portal.azure.com → **Azure Active Directory → App registrations → New registration**.
+2. **Redirect URI**: Web type, `https://julianwiley.com/api/auth/callback/microsoft-entra-id` (add the localhost URI for dev).
+3. **Certificates & secrets → New client secret** → copy the value.
+4. Set in `.env.local`:
+   ```env
+   AUTH_MICROSOFT_ENTRA_ID_ID=<application (client) id>
+   AUTH_MICROSOFT_ENTRA_ID_SECRET=<client secret value>
+   AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/common/v2.0
+   ```
+5. Restart the dev server.
+
 ## Routes
 
 | Route                 | Visibility | Source                            |
