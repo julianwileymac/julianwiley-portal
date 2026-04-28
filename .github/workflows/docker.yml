@@ -1,15 +1,15 @@
 name: docker
 
-# Build a multi-arch (linux/amd64 + linux/arm64) image of julianwiley-portal
-# and push it to GHCR. Triggers:
-#   - push to main:    publishes :main + :sha-<short>
-#   - tag v*.*.*:      additionally publishes :<semver>
-#   - manual dispatch: lets you re-build any branch on demand
+# Build a portal container image and push it to GHCR. Triggers:
+#   - push to main:    publishes :main + :sha-<short> + :latest (amd64 only)
+#   - tag v*.*.*:      same + :<semver>, multi-arch (amd64 + arm64)
+#   - manual dispatch: opt-in arch selection
 #
-# The arm64 build is for the RPi5 worker nodes in rpi_kubernetes; amd64 is for
-# the Ubuntu control plane and local dev. ingress-nginx is pinned to amd64
-# so the portal could realistically run on either arch — multi-arch keeps
-# scheduling flexible.
+# Default is amd64-only because QEMU arm64 emulation on a free GitHub Actions
+# runner takes ~45 min per push, which blows the workflow's 45-min ceiling
+# during a cold cache. The rpi_kubernetes control plane is amd64, so amd64
+# images schedule fine; multi-arch is reserved for tagged releases that
+# also want to land on the RPi5 worker nodes.
 
 on:
   push:
@@ -18,6 +18,15 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Image platforms to build (comma-separated)"
+        required: false
+        default: "linux/amd64"
+        type: choice
+        options:
+          - "linux/amd64"
+          - "linux/amd64,linux/arm64"
 
 permissions:
   contents: read
@@ -36,10 +45,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up QEMU (for arm64 emulation)
+      - name: Resolve build platforms
+        id: platforms
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "value=${{ github.event.inputs.platforms }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "value=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=linux/amd64" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU (only when arm64 is requested)
+        if: contains(steps.platforms.outputs.value, 'arm64')
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -70,10 +92,10 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.platforms.outputs.value }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=portal
+          cache-to: type=gha,mode=max,scope=portal
           provenance: false
