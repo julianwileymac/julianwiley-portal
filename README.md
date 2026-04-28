@@ -162,7 +162,21 @@ Override the source path with `node scripts/migrate-posts.mjs --source /path/to/
 - [x] NextAuth v5 with Entra + Google + dev Credentials
 - [x] Auth-gated `/app/*` admin dashboard with ProLayout, project rooms, blog admin table, contact inbox stub
 
-### Phase 2 — Kubernetes + Cloudflare Tunnel (shipped)
+### Phase 4 — Production go-live (shipped)
+
+- [x] `julianwiley.com` and `www.julianwiley.com` are LIVE behind a Cloudflare Tunnel (tunnel id `0168bb5d-4236-4c8a-a642-ab2d28bca470`, name `julianwiley-portal`)
+- [x] DNS migrated from Google Cloud DNS to Cloudflare nameservers (`julissa.ns.cloudflare.com`, `kolton.ns.cloudflare.com`)
+- [x] Cloudflared deployed in `edge` namespace, 8 active QUIC connections to Cloudflare BOS/EWR PoPs
+- [x] Portal deployed in `web` namespace, image pinned to `ghcr.io/julianwileymac/portal:sha-d2f8c2b`
+- [x] Real OIDC: rotated Google client secret pushed to cluster Secret + local `.env.local`; `ADMIN_EMAILS=julian@julianwiley.com` promotes the OIDC user to admin
+- [x] Public smoke test: `https://julianwiley.com/api/auth/providers` returns 200 with the Google provider JSON
+
+### Routing-bug postmortem (folded into Phase 4)
+
+- The original `app/app/` folder collided with the App Router root (`app/`), causing Next.js 15.5 to mount `app/app/layout.tsx` as an ancestor layout for *every* public route. Symptom: every URL except `/api/auth/*` returned 307 to `/login?redirect=/app`.
+- Fix: wrapped admin in a route group at `app/(admin)/app/`. Route groups are URL-invisible so `/app/*` URLs are unchanged.
+
+### Phase 2 — Kubernetes + Cloudflare Tunnel (shipped, foundation)
 
 - [x] Multi-arch `Dockerfile` (linux/amd64 + linux/arm64) with Next.js standalone output and read-only rootfs runtime
 - [x] `.github/workflows/docker.yml` → `buildx` → `ghcr.io/julianwileymac/portal` (tags `latest`, `main`, `sha-<short>`, semver on `v*.*.*` tags)
