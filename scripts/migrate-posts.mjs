@@ -1,9 +1,16 @@
 #!/usr/bin/env node
-// Migrate Hugo posts from julianwileymac.github.io/content/posts/<slug>/index.md
-// to this repo's content/posts/<slug>.mdx with cleaned front matter and
-// best-effort Hugo shortcode replacements.
+// Migrate Hugo content from julianwileymac.github.io to this repo with
+// cleaned front matter and best-effort Hugo shortcode replacements. Handles
+// three trees:
+//   posts/  -> flat content/posts/<slug>.mdx (one file per blog post)
+//   notes/  -> nested content/notes/<path>.mdx (Bash, Go basics + advanced)
+//   docs/   -> nested content/docs/<path>.mdx (Getting Started, Guides, ...)
 //
-// Usage:  node scripts/migrate-posts.mjs [--source <path>]
+// Usage:
+//   node scripts/migrate-posts.mjs               # migrate posts (default)
+//   node scripts/migrate-posts.mjs --kind notes
+//   node scripts/migrate-posts.mjs --kind docs
+//   node scripts/migrate-posts.mjs --kind all
 //
 // Idempotent: re-running overwrites the destination .mdx files.
 
@@ -21,19 +28,15 @@ const args = Object.fromEntries(
   })
 );
 
-const sourceRoot =
-  args.source ??
-  resolve(repoRoot, "..", "julianwileymac.github.io", "content", "posts");
-const destRoot = resolve(repoRoot, "content", "posts");
-const imageSourceRoot = resolve(repoRoot, "..", "julianwileymac.github.io", "static");
+const hugoRoot =
+  args.hugoRoot ?? resolve(repoRoot, "..", "julianwileymac.github.io");
 const imageDestRoot = resolve(repoRoot, "public");
-
-if (!existsSync(sourceRoot)) {
-  console.error(`Source not found: ${sourceRoot}`);
+const kind = (args.kind ?? "posts").toLowerCase();
+const validKinds = new Set(["posts", "notes", "docs", "all"]);
+if (!validKinds.has(kind)) {
+  console.error(`--kind must be one of: ${[...validKinds].join(", ")}`);
   process.exit(1);
 }
-
-mkdirSync(destRoot, { recursive: true });
 
 /** Hugo shortcodes we recognize and how to convert them to MDX. */
 function convertShortcodes(body, slug) {
@@ -124,60 +127,134 @@ function parseAndCleanFrontMatter(raw) {
 }
 
 /** Rewrite images referenced as /images/... or relative ./asset.png. */
-function rewriteImages(body, slug) {
-  // Hugo posts may reference local images relative to the post folder.
-  // We map them to /images/posts/<slug>/<file>. There were no local images
-  // in this corpus, but the rewriter is here for future-proofing.
+function rewriteImages(body, sourceDir, destImageRoot, slug) {
   return body.replace(
     /!\[([^\]]*)\]\((?!https?:)([^)]+)\)/g,
     (full, alt, src) => {
       if (src.startsWith("/")) return full;
-      // Rewrite `./foo.png` or `foo.png` -> /images/posts/<slug>/foo.png
       const cleanSrc = src.replace(/^\.\//, "");
-      const sourcePath = join(sourceRoot, slug, cleanSrc);
+      const sourcePath = join(sourceDir, cleanSrc);
       if (existsSync(sourcePath)) {
-        const destDir = join(imageDestRoot, "images", "posts", slug);
+        const destDir = join(imageDestRoot, "images", destImageRoot, slug);
         mkdirSync(destDir, { recursive: true });
         copyFileSync(sourcePath, join(destDir, cleanSrc));
-        return `![${alt}](/images/posts/${slug}/${cleanSrc})`;
+        return `![${alt}](/images/${destImageRoot}/${slug}/${cleanSrc})`;
       }
       return full;
     }
   );
 }
 
-const slugDirs = readdirSync(sourceRoot).filter((name) => {
-  const p = join(sourceRoot, name);
-  return statSync(p).isDirectory() && existsSync(join(p, "index.md"));
-});
+/** Migrate a flat `posts/<slug>/index.md` tree (each post is one folder). */
+function migratePosts() {
+  const sourceRoot = resolve(hugoRoot, "content", "posts");
+  const destRoot = resolve(repoRoot, "content", "posts");
+  if (!existsSync(sourceRoot)) {
+    console.warn(`[posts] source not found: ${sourceRoot}`);
+    return;
+  }
+  mkdirSync(destRoot, { recursive: true });
 
-let migrated = 0;
-let warnings = 0;
-const summary = [];
+  const slugDirs = readdirSync(sourceRoot).filter((name) => {
+    const p = join(sourceRoot, name);
+    return statSync(p).isDirectory() && existsSync(join(p, "index.md"));
+  });
 
-for (const slug of slugDirs) {
-  const sourceFile = join(sourceRoot, slug, "index.md");
-  const destFile = join(destRoot, `${slug}.mdx`);
-  const raw = readFileSync(sourceFile, "utf-8");
+  let migrated = 0;
+  const flagged = [];
 
-  const { frontMatterText, body } = parseAndCleanFrontMatter(raw);
-  const beforeShortcode = body;
-  let mdxBody = convertShortcodes(body, slug);
-  mdxBody = rewriteImages(mdxBody, slug);
+  for (const slug of slugDirs) {
+    const sourceFile = join(sourceRoot, slug, "index.md");
+    const destFile = join(destRoot, `${slug}.mdx`);
+    const raw = readFileSync(sourceFile, "utf-8");
 
-  const hasUnported = /<UnportedShortcode/.test(mdxBody);
-  if (hasUnported) warnings += 1;
+    const { frontMatterText, body } = parseAndCleanFrontMatter(raw);
+    let mdxBody = convertShortcodes(body, slug);
+    mdxBody = rewriteImages(mdxBody, join(sourceRoot, slug), "posts", slug);
 
-  const out = `---\n${frontMatterText}\n---\n\n${mdxBody.trimStart()}\n`;
-  writeFileSync(destFile, out, "utf-8");
+    if (/<UnportedShortcode/.test(mdxBody)) flagged.push(slug);
 
-  summary.push({ slug, hasUnported, byteCount: out.length, changed: beforeShortcode !== mdxBody });
-  migrated += 1;
+    const out = `---\n${frontMatterText}\n---\n\n${mdxBody.trimStart()}\n`;
+    writeFileSync(destFile, out, "utf-8");
+    migrated += 1;
+  }
+
+  console.log(`\n[posts] migrated ${migrated} files -> ${destRoot}`);
+  if (flagged.length > 0) {
+    console.log(`[posts] ${flagged.length} flagged for manual review:`);
+    flagged.forEach((s) => console.log(`  - content/posts/${s}.mdx`));
+  }
 }
 
-console.log(`\nMigrated ${migrated} posts → ${destRoot}`);
-console.log(`Posts with unported shortcodes (need manual review): ${warnings}`);
-if (warnings > 0) {
-  console.log("Files needing review:");
-  summary.filter((s) => s.hasUnported).forEach((s) => console.log(`  - content/posts/${s.slug}.mdx`));
+/**
+ * Walk a Hugo nested page bundle (notes/, docs/) and emit MDX preserving
+ * the URL slug shape:
+ *   <root>/_index.md                    -> <kind>/index.mdx
+ *   <root>/<a>/_index.md                -> <kind>/<a>/index.mdx
+ *   <root>/<a>/<b>/index.md             -> <kind>/<a>/<b>.mdx
+ */
+function migrateBundleTree(kindName) {
+  const sourceRoot = resolve(hugoRoot, "content", kindName);
+  const destRoot = resolve(repoRoot, "content", kindName);
+  if (!existsSync(sourceRoot)) {
+    console.warn(`[${kindName}] source not found: ${sourceRoot}`);
+    return;
+  }
+  mkdirSync(destRoot, { recursive: true });
+
+  const flagged = [];
+  let migrated = 0;
+
+  function walk(absDir, relParts) {
+    const entries = readdirSync(absDir);
+    for (const entry of entries) {
+      const abs = join(absDir, entry);
+      if (statSync(abs).isDirectory()) {
+        walk(abs, [...relParts, entry]);
+        continue;
+      }
+
+      let isSection = false;
+      let isLeaf = false;
+      if (entry === "_index.md") isSection = true;
+      else if (entry === "index.md") isLeaf = true;
+      else continue;
+
+      const raw = readFileSync(abs, "utf-8");
+      const { frontMatterText, body } = parseAndCleanFrontMatter(raw);
+      const slug = relParts.join("/") || "(root)";
+      let mdxBody = convertShortcodes(body, slug);
+      mdxBody = rewriteImages(mdxBody, absDir, kindName, slug.replace(/\//g, "-"));
+      if (/<UnportedShortcode/.test(mdxBody)) flagged.push(slug);
+
+      let destFile;
+      if (isSection) {
+        const dir = relParts.length === 0 ? destRoot : join(destRoot, ...relParts);
+        mkdirSync(dir, { recursive: true });
+        destFile = join(dir, "index.mdx");
+      } else {
+        // leaf: <kind>/<a>/<b>/index.md -> <kind>/<a>/<b>.mdx
+        const parent = relParts.slice(0, -1);
+        const file = relParts[relParts.length - 1] + ".mdx";
+        const dir = parent.length === 0 ? destRoot : join(destRoot, ...parent);
+        mkdirSync(dir, { recursive: true });
+        destFile = join(dir, file);
+      }
+
+      const out = `---\n${frontMatterText}\n---\n\n${mdxBody.trimStart()}\n`;
+      writeFileSync(destFile, out, "utf-8");
+      migrated += 1;
+    }
+  }
+
+  walk(sourceRoot, []);
+  console.log(`\n[${kindName}] migrated ${migrated} files -> ${destRoot}`);
+  if (flagged.length > 0) {
+    console.log(`[${kindName}] ${flagged.length} flagged for manual review:`);
+    flagged.forEach((s) => console.log(`  - content/${kindName}/${s}`));
+  }
 }
+
+if (kind === "posts" || kind === "all") migratePosts();
+if (kind === "notes" || kind === "all") migrateBundleTree("notes");
+if (kind === "docs" || kind === "all") migrateBundleTree("docs");

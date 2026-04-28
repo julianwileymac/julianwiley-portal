@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Typography } from "antd";
+import { Typography } from "antd";
 import { PageContainer } from "@/components/pro";
 import { KpiRow } from "@/components/admin/KpiRow";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
@@ -29,13 +29,6 @@ export function Dashboard({
         subTitle: "Personal portal control panel",
       }}
     >
-      <Alert
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-        message="This dashboard ships with mock data."
-        description="Phase 3 will hook this up to live Prometheus metrics from the rpi_kubernetes cluster and a real visits source."
-      />
       <KpiRow
         projectsCount={projectsCount}
         postsCount={postsCount}

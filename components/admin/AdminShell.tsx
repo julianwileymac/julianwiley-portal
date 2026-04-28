@@ -17,24 +17,34 @@ import {
 import { siteData } from "@/lib/data/site";
 import { brandColors } from "@/lib/theme";
 
+interface AccessFlags {
+  viewBlogAdmin: boolean;
+  viewContactInbox: boolean;
+}
+
 interface Props {
   user: { name?: string | null; email?: string | null; image?: string | null; role?: string };
+  access: AccessFlags;
   children: React.ReactNode;
 }
 
-const route = {
-  path: "/app",
-  routes: [
-    { path: "/app", name: "Dashboard", icon: <DashboardOutlined /> },
-    { path: "/app/projects", name: "Projects", icon: <ProjectOutlined /> },
-    { path: "/app/blog-admin", name: "Blog Admin", icon: <EditOutlined /> },
-    { path: "/app/contact-inbox", name: "Contact Inbox", icon: <MailOutlined /> },
-  ],
-};
-
-export function AdminShell({ user, children }: Props) {
+export function AdminShell({ user, access, children }: Props) {
   const pathname = usePathname() ?? "/app";
   const router = useRouter();
+
+  const route = {
+    path: "/app",
+    routes: [
+      { path: "/app", name: "Dashboard", icon: <DashboardOutlined /> },
+      { path: "/app/projects", name: "Projects", icon: <ProjectOutlined /> },
+      ...(access.viewBlogAdmin
+        ? [{ path: "/app/blog-admin", name: "Blog Admin", icon: <EditOutlined /> }]
+        : []),
+      ...(access.viewContactInbox
+        ? [{ path: "/app/contact-inbox", name: "Contact Inbox", icon: <MailOutlined /> }]
+        : []),
+    ],
+  };
 
   return (
     <ProLayout

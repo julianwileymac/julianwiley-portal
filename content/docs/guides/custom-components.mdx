@@ -1,0 +1,404 @@
+---
+title: "Custom Components Reference"
+description: "Complete reference for all shortcodes and custom components available for content authoring."
+weight: 1
+---
+
+## Table of Contents
+
+<TocInline />
+<UnportedShortcode source={"{{< /toc-inline >}}"} />
+
+
+---
+
+## Custom Shortcodes
+
+These shortcodes are defined in `layouts/shortcodes/` and are specific to this site.
+
+### callout
+
+Admonition boxes for tips, warnings, dangers, and informational content. Supports markdown in the body.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `type` | No | One of: `tip`, `warning`, `danger`, `info`. Default: `info` |
+| `title` | No | Custom title. Defaults to the type name (Tip, Warning, Danger, Info) |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* callout type=\"tip\" title=\"Pro Tip\" */>}}"} />
+
+Your content here. Supports **markdown**.
+
+<UnportedShortcode source={"{{</* /callout */>}}"} />
+
+```
+
+**Example output:** A styled box with an icon and title bar, containing the rendered markdown body. Each type has distinct styling (e.g., tip uses a lightbulb icon, warning uses an exclamation triangle).
+
+---
+
+### code-tabs and tab
+
+Tabbed code blocks for displaying multi-language examples. Use `tab` shortcodes inside `code-tabs`; each tab contains code (typically fenced code blocks).
+
+**Parameters (code-tabs):** None.
+
+**Parameters (tab):**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `name` | No | Display label for the tab. Default: `Tab` |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* code-tabs */>}}"} />
+
+
+<UnportedShortcode source={"{{</* tab name=\"Python\" */>}}"} />
+
+```python
+print("Hello, World!")
+```
+
+<UnportedShortcode source={"{{</* /tab */>}}"} />
+
+
+<UnportedShortcode source={"{{</* tab name=\"JavaScript\" */>}}"} />
+
+```javascript
+console.log("Hello, World!");
+```
+
+<UnportedShortcode source={"{{</* /tab */>}}"} />
+
+
+<UnportedShortcode source={"{{</* /code-tabs */>}}"} />
+
+```
+
+**Example output:** A horizontal tab bar with clickable labels (Python, JavaScript). Clicking a tab reveals its code block. The first tab is active by default.
+
+---
+
+### tech-stack
+
+Technology pill badges. Use either a simple comma-separated list or an advanced format with optional links.
+
+**Parameters (simple mode):**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `items` | Yes (simple mode) | Comma-separated list of technology names |
+
+**Parameters (advanced mode):** Omit `items` and use inner content.
+
+**Usage syntax (simple):**
+
+```
+
+<UnportedShortcode source={"{{</* tech-stack items=\"Python,TensorFlow,Docker\" */>}}"} />
+
+```
+
+**Usage syntax (advanced with links):**
+
+```
+
+<UnportedShortcode source={"{{</* tech-stack */>}}"} />
+
+Python|https://python.org
+TensorFlow|https://tensorflow.org
+Docker|https://docker.com
+
+<UnportedShortcode source={"{{</* /tech-stack */>}}"} />
+
+```
+
+**Example output:** A row of pill-shaped badges. In advanced mode, lines with `Name|URL` render as linked badges; lines with only a name render as plain badges.
+
+---
+
+### project-showcase
+
+Embeds a project card inline by looking up the project by name from `data/en/sections/projects.yaml`.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `name` | Yes | Exact project name as defined in projects.yaml |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* project-showcase name=\"Predicting Economic Recessions\" */>}}"} />
+
+```
+
+**Example output:** A card showing project name (linked to repo if available), role, timeline, status badge, summary, description, technology badges, and highlights. If the project is not found, a warning callout is displayed.
+
+---
+
+### toc-inline
+
+Renders the page's table of contents inline within the content. Useful for long documentation pages.
+
+**Parameters:** None.
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* toc-inline */>}}"} />
+
+```
+
+**Example output:** A titled box ("Table of Contents") containing the page's heading hierarchy as a nested list of links.
+
+---
+
+## Built-in Theme Shortcodes
+
+These shortcodes are provided by the Toha v4 theme.
+
+### img
+
+Standard image with optional alignment, dimensions, and caption.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `src` | Yes | Image path (relative to static or content) |
+| `title` | No | Alt text and title |
+| `width` | No | Width attribute |
+| `height` | No | Height attribute |
+| `float` | No | CSS float value (e.g., left, right) |
+| `align` | No | CSS class for alignment |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* img src=\"/images/example.png\" title=\"Example image\" align=\"center\" */>}}"} />
+
+```
+
+**Example output:** An `<img>` element with the specified attributes. Use `title` for accessibility (alt text).
+
+---
+
+### rimg
+
+Responsive image with automatic srcset for multiple sizes (500w, 800w, 1200w, 1500w). Uses Hugo image processing for local assets; external URLs are passed through unchanged.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `src` | Yes | Image path or URL |
+| `alt` | No | Alt text |
+| `sizes` | No | HTML sizes attribute for responsive behavior |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* rimg src=\"/images/hero.jpg\" alt=\"Hero image\" */>}}"} />
+
+```
+
+**Example output:** An `<img>` with a `srcset` attribute. Browsers select the appropriate size based on viewport. GIFs are not resized.
+
+---
+
+### alert
+
+Simple alert boxes for inline messages.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `type` | Yes | One of: `info`, `warning`, `danger`, `success` |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* alert type=\"warning\" */>}}"} />
+
+This action cannot be undone.
+
+<UnportedShortcode source={"{{</* /alert */>}}"} />
+
+```
+
+**Example output:** A Bootstrap-style alert box with bold inner content. The `type` controls the color scheme.
+
+---
+
+### note
+
+Note callout boxes with optional multiple cards. Content is split by `---` into separate cards.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `title` | No | Title for the note |
+| `size` | No | Size modifier class (e.g., for layout) |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* note title=\"Important\" */>}}"} />
+
+First card content.
+---
+Second card content.
+
+<UnportedShortcode source={"{{</* /note */>}}"} />
+
+```
+
+**Example output:** A note card with a title and one or more inner cards. Each segment between `---` becomes a separate card body.
+
+---
+
+### mermaid
+
+Renders Mermaid.js diagrams (flowcharts, sequence diagrams, etc.). Inner content is Mermaid syntax.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `align` | No | Alignment. Default: `center` |
+| `background` | No | Background color. Default: `none` |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* mermaid */>}}"} />
+
+flowchart LR
+  A --> B --> C
+
+<UnportedShortcode source={"{{</* /mermaid */>}}"} />
+
+```
+
+**Example output:** A block containing the diagram. Mermaid.js renders it client-side. Supports flowcharts, sequence diagrams, and other Mermaid diagram types.
+
+---
+
+### video
+
+Video player (Plyr.js powered) with native controls.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `src` | Yes | URL to the video file |
+| `type` | No | MIME type. Default: `video/mp4` |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* video src=\"/videos/demo.mp4\" type=\"video/mp4\" */>}}"} />
+
+```
+
+**Example output:** A `<video>` element with playsinline and controls. Plyr.js enhances the default player if loaded.
+
+---
+
+### embed-pdf
+
+Embeds a PDF document using PDF.js. Renders pages on a canvas with optional pagination controls.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `src` | Yes | URL to the PDF file |
+| `hidePaginator` | No | Hide pagination controls. Default: `false` |
+| `hideLoader` | No | Hide loading indicator. Default: `false` |
+| `renderPageNum` | No | Initial page to display. Default: `1` |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* embed-pdf src=\"https://example.com/document.pdf\" */>}}"} />
+
+```
+
+**Example output:** A PDF viewer with Previous/Next buttons and page counter. The PDF is rendered to a canvas. Requires the embed-pdf feature to be enabled in site config.
+
+---
+
+### split
+
+Splits content into responsive columns. Content is divided by `---`; each segment becomes a column. Column widths are specified by positional parameters (0-indexed) as Bootstrap grid values (1-12).
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `0` | No | Bootstrap col-lg value for first column (e.g., 6) |
+| `1` | No | Bootstrap col-lg value for second column |
+| `2` | No | And so on for additional columns |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* split 0=\"6\" 1=\"6\" */>}}"} />
+
+Left column content.
+---
+Right column content.
+
+<UnportedShortcode source={"{{</* /split */>}}"} />
+
+```
+
+**Example output:** A Bootstrap row with columns. Each column is full-width on small screens (col-sm-12) and uses the specified width on large screens. Example: `0="6" 1="6"` gives two equal columns.
+
+---
+
+### vs
+
+Adds vertical spacing (margin-top) between elements. The first positional parameter is the spacing in rem units.
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| (positional) | No | Margin-top value in rem (e.g., 2 for 2rem) |
+
+**Usage syntax:**
+
+```
+
+<UnportedShortcode source={"{{</* vs 2 */>}}"} />
+
+```
+
+**Example output:** An invisible spacer div with `margin-top: 2rem`. Use to add vertical space between blocks.
+

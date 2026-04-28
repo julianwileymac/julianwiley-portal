@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getAccess } from "@/lib/access";
 import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AppLayout({
@@ -12,5 +13,17 @@ export default async function AppLayout({
     redirect("/login?redirect=/app");
   }
 
-  return <AdminShell user={session.user}>{children}</AdminShell>;
+  const access = await getAccess();
+
+  return (
+    <AdminShell
+      user={session.user}
+      access={{
+        viewBlogAdmin: access.can.viewBlogAdmin,
+        viewContactInbox: access.can.viewContactInbox,
+      }}
+    >
+      {children}
+    </AdminShell>
+  );
 }

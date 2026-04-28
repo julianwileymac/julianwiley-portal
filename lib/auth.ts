@@ -2,11 +2,12 @@ import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
+import { classifyEmail, type Role } from "@/lib/access";
 
 declare module "next-auth" {
   interface Session {
     user: {
-      role?: "admin" | "viewer";
+      role?: Role;
     } & DefaultSession["user"];
   }
 }
@@ -75,14 +76,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user && "role" in user) {
-        // Persist the role on the JWT for use in middleware/session.
-        (token as { role?: string }).role = (user as { role?: string }).role;
+      // First sign-in: derive the role from the user record. Credentials
+      // already carries `role: "admin"`; OIDC users are classified by their
+      // email against ADMIN_EMAILS / EDITOR_EMAILS env-var allow-lists.
+      if (user) {
+        const explicit = (user as { role?: Role }).role;
+        const fromEmail = classifyEmail(user.email ?? null);
+        (token as { role?: Role }).role = explicit ?? fromEmail;
       }
       return token;
     },
     async session({ session, token }) {
-      const role = (token as { role?: "admin" | "viewer" }).role;
+      const role = (token as { role?: Role }).role;
       if (session.user) {
         session.user.role = role ?? "viewer";
       }

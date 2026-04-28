@@ -1,0 +1,199 @@
+---
+title: "Getting Started"
+description: "Set up the portfolio site locally and understand the project structure."
+weight: 1
+---
+
+This guide walks you through setting up the portfolio site locally and understanding how the project is organized.
+
+## Prerequisites
+
+Install the following before you begin:
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Hugo Extended | v0.140.1+ | Static site generator; Extended is required for Toha theme asset processing |
+| Go | 1.22+ | Hugo dependency |
+| Node.js | 20+ | Required by Toha theme for npm asset bundling |
+| Git | Latest | Version control and cloning the repository |
+
+**Hugo Extended** is required (not the standard Hugo binary). Download it from [Hugo releases](https://github.com/gohugoio/hugo/releases) or install via your package manager. Verify with:
+
+```bash
+hugo version
+```
+
+You should see `extended` in the output.
+
+## Quick Start
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/julianwileymac/julianwileymac.github.io.git
+cd julianwileymac.github.io
+```
+
+2. Install Node.js dependencies (required by the Toha theme):
+
+```bash
+npm install
+```
+
+3. Start the development server:
+
+```bash
+hugo server
+```
+
+The site will be available at `http://localhost:1313`. Changes to content and layouts trigger live reload.
+
+## Project Structure
+
+Understanding the directory layout helps you know where to add content, customize templates, and configure the site.
+
+```
+julianwileymac.github.io/
+├── config.yaml
+├── content/
+├── data/
+├── layouts/
+├── static/
+├── themes/
+├── .github/
+└── package.json
+```
+
+### `config.yaml`
+
+The main Hugo configuration file. It defines:
+
+- `baseURL`, `title`, `languageCode`
+- `theme: "toha"` and Hugo module imports for the Toha v4 theme
+- `params` for logos, background images, feature flags (blog, portfolio, notes, comments, analytics)
+- Output formats (HTML, RSS, JSON for search)
+- Markup settings (Goldmark, table of contents, emoji)
+
+Edit this file to change site-wide behavior and appearance.
+
+### `content/`
+
+Markdown content lives here. Key subdirectories:
+
+- `content/posts/` — Blog posts
+- `content/docs/` — Documentation (this guide and related pages)
+- `content/notes/` — Notes section (if enabled)
+
+Each section can have an `_index.md` for section metadata and optional content. Individual pages use standard `.md` files with frontmatter.
+
+### `data/en/`
+
+YAML data files used by the theme and layouts:
+
+- `author.yaml` — Author name, image, contact info, summary
+- `site.yaml` — Copyright, disclaimer, meta description, custom menus, OpenGraph settings
+- `sections/*.yaml` — Section-specific data (e.g., `projects.yaml`, `recent-posts.yaml`)
+
+These files drive the homepage, footer, and other dynamic content. Edit them to personalize the site.
+
+### `layouts/`
+
+Custom layout overrides. Files here shadow (override) theme templates. For example:
+
+- `layouts/partials/header.html` overrides `themes/toha/layouts/partials/header.html`
+- `layouts/docs/single.html` customizes the docs single-page layout
+- `layouts/shortcodes/` holds custom shortcodes (e.g., `callout.html`, `tab.html`)
+
+Add or modify files in `layouts/` to change how pages render without editing the theme.
+
+### `static/`
+
+Static assets served as-is:
+
+- `static/images/` — Images (site logos, backgrounds, author photo)
+- `static/css/` — Custom stylesheets
+- `static/robots.txt` — Custom robots file (if not using Hugo’s built-in generation)
+
+Files in `static/` are copied to the site root during build. Reference them with paths like `/images/site/background.jpg`.
+
+### `themes/toha/`
+
+The Toha v4 theme, typically added as a Git submodule or via Hugo modules. Do not modify files here directly; theme updates would overwrite your changes. Use `layouts/` overrides instead.
+
+### `.github/workflows/`
+
+GitHub Actions workflows for deployment. The `deploy-site.yaml` workflow:
+
+- Triggers on push to `main`
+- Checks out the repo with submodules
+- Sets up Node.js 20 and runs `npm ci`
+- Installs Hugo Extended v0.140.1
+- Builds with `hugo --minify`
+- Deploys the `public/` output to the `gh-pages` branch
+
+## How Hugo Layout Override Works
+
+Hugo uses a lookup order for templates. Files in the project root take precedence over theme files when paths match.
+
+If you create:
+
+```
+layouts/partials/header.html
+```
+
+Hugo will use this file instead of:
+
+```
+themes/toha/layouts/partials/header.html
+```
+
+The root `layouts/` directory shadows the theme. To customize a theme template:
+
+1. Copy the theme file path (e.g., `themes/toha/layouts/partials/header.html`)
+2. Create the same path under `layouts/` (e.g., `layouts/partials/header.html`)
+3. Edit the copy in `layouts/`
+
+Your version is used; the theme file is ignored for that template.
+
+## Development Workflow
+
+### Running the dev server with drafts
+
+To include draft content (frontmatter `draft: true`):
+
+```bash
+hugo server -D
+```
+
+### Live reload
+
+`hugo server` watches for changes and reloads the browser automatically. Edit content or layouts and save to see updates.
+
+### Building for production
+
+Build a minified production site:
+
+```bash
+hugo --minify
+```
+
+Output goes to `public/`. This matches the GitHub Actions build step.
+
+### Testing the production build locally
+
+```bash
+hugo --minify
+hugo server --disableLiveReload
+```
+
+Serve the built site to verify the production output.
+
+## Next Steps
+
+Continue with these documentation sections:
+
+- [Content Authoring](/docs/guides/content-authoring/) — Writing posts, docs, and notes with frontmatter and shortcodes
+- [Custom Components](/docs/guides/custom-components/) — Creating and using shortcodes and layout overrides
+- [Project Configuration](/docs/guides/configuration/) — Configuring `config.yaml` and data files
+- [Deployment](/docs/guides/deployment/) — GitHub Pages setup and workflow customization
+

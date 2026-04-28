@@ -12,6 +12,7 @@ import {
 } from "@/lib/mdx";
 import { BlogPostHeader } from "@/components/marketing/BlogPostHeader";
 import { BlogPostAside } from "@/components/marketing/BlogPostAside";
+import { stripUnportedShortcodes } from "@/lib/markdown";
 import { brandColors } from "@/lib/theme";
 
 interface Params {
@@ -37,22 +38,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       tags: post.tags,
     },
   };
-}
-
-/** Strip the residual MDX-only `<UnportedShortcode>` JSX tags from legacy
- * template posts so `react-markdown` doesn't choke on the embedded JSX. */
-function stripUnportedShortcodes(content: string): string {
-  return content.replace(
-    /<UnportedShortcode source=\{(.+?)\}\s*\/>/gs,
-    (_, sourceJson) => {
-      try {
-        const code = JSON.parse(sourceJson);
-        return `\n> ⚠️ **Unported Hugo shortcode (manual conversion needed):** \`${String(code).replace(/`/g, "'")}\`\n`;
-      } catch {
-        return "\n> ⚠️ **Unported Hugo shortcode (manual conversion needed)**\n";
-      }
-    }
-  );
 }
 
 export default async function BlogPostPage({ params }: Params) {

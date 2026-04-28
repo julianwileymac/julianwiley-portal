@@ -1,0 +1,37 @@
+---
+title: Bash Variables
+weight: 210
+---
+
+<!-- Variable -->
+
+<UnportedShortcode source={"{{< note title=\"Variable\" >}}"} />
+
+
+```bash
+NAME="John"
+echo $NAME
+echo "$NAME"
+echo "${NAME}
+```
+
+
+<UnportedShortcode source={"{{< /note >}}"} />
+
+
+<!-- Condition -->
+
+<UnportedShortcode source={"{{< note title=\"Condition\" >}}"} />
+
+
+```bash
+if [[ -z "$string" ]]; then
+  echo "String is empty"
+elif [[ -n "$string" ]]; then
+  echo "String is not empty"
+fi
+```
+
+
+<UnportedShortcode source={"{{< /note >}}"} />
+

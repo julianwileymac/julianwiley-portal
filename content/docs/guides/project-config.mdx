@@ -1,0 +1,536 @@
+---
+title: "Project & Data Configuration"
+description: "Complete YAML schema reference for projects, experiences, skills, and all data-driven sections."
+weight: 3
+---
+
+This guide documents the full YAML schema for each data file used by the Hugo/Toha portfolio theme. All section data files live under `data/en/sections/` unless otherwise noted.
+
+---
+
+## 1. projects.yaml
+
+Location: `data/en/sections/projects.yaml`
+
+Defines the Projects section with filter buttons and project entries. Each project supports an expanded schema including logos, status, technologies, and highlights.
+
+### Section and Filter Buttons
+
+```yaml
+# Section metadata (controls visibility and ordering)
+section:
+  name: Projects           # Display name in navbar and section header
+  id: projects             # Unique section identifier
+  enable: true             # Show or hide the section
+  weight: 5                # Sort order (lower = higher on page)
+  showOnNavbar: true       # Include in top navigation
+
+# Filter buttons for project tags (optional)
+buttons:
+- name: All
+  filter: "all"
+- name: Professional
+  filter: "professional"
+- name: Academic
+  filter: "academic"
+- name: Personal
+  filter: "personal"
+```
+
+### Project Schema
+
+```yaml
+projects:
+- name: "Project Name"           # Required: display name
+  logo: /images/path/logo.png    # Optional: project logo
+  role: "Role Title"             # Required: your role
+  timeline: "Start - End"        # Required: date range (e.g., "November 2022 - December 2022")
+  repo: https://github.com/...   # Optional: GitHub repo URL
+  url: "https://..."             # Optional: external URL (alternative to repo)
+  summary: "Brief description"    # Required: short summary (supports markdown)
+  description: "Extended..."     # Optional: longer description
+  status: completed              # Optional: completed | in-progress | archived
+  featured: true                # Optional: highlights project
+  technologies:                  # Optional: rendered as pill badges
+    - Python
+    - TensorFlow
+  tags: ["tag1", "tag2"]         # Required: used for filtering (must match button filters)
+  highlights:                    # Optional: key achievements
+    - "Achievement 1"
+    - "Achievement 2"
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Display name of the project |
+| `logo` | No | Path to project logo (relative to static/) |
+| `role` | Yes | Your role in the project |
+| `timeline` | Yes | Date range string |
+| `repo` | No | GitHub repository URL |
+| `url` | No | External URL (use when no repo) |
+| `summary` | Yes | Short summary; supports markdown |
+| `description` | No | Extended description |
+| `status` | No | `completed`, `in-progress`, or `archived` |
+| `featured` | No | Boolean; highlights the project |
+| `technologies` | No | List of tech names (rendered as badges) |
+| `tags` | Yes | List of tags for filtering |
+| `highlights` | No | List of key achievement strings |
+
+---
+
+## 2. experiences.yaml
+
+Location: `data/en/sections/experiences.yaml`
+
+Defines work experience with companies and positions.
+
+### Section Schema
+
+```yaml
+section:
+  name: Experiences
+  id: experiences
+  enable: true
+  weight: 3
+  showOnNavbar: true
+  # hideTitle: true   # Optional: hide section title
+```
+
+### Experience Schema
+
+```yaml
+experiences:
+- company:
+    name: "Company Name"         # Required: company display name
+    url: "https://www.example.com"  # Optional: company website
+    location: "City, State"      # Optional: office location
+    overview: "Company description."  # Optional: company overview
+  positions:
+  - designation: "Job Title"    # Required: your job title
+    start: "Nov 2019"           # Required: start date
+    end: "Dec 2020"             # Optional: omit for current role (shows "Present")
+    responsibilities:           # Required: list of bullet points
+    - "Responsibility 1"
+    - "Responsibility 2 [Link](https://example.com)"
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `company.name` | Yes | Company display name |
+| `company.url` | No | Company website URL |
+| `company.location` | No | Office location |
+| `company.overview` | No | Brief company description |
+| `positions` | Yes | List of positions at this company |
+| `positions[].designation` | Yes | Job title |
+| `positions[].start` | Yes | Start date string |
+| `positions[].end` | No | End date; omit for current role |
+| `positions[].responsibilities` | Yes | List of responsibility strings (markdown supported) |
+
+---
+
+## 3. skills.yaml
+
+Location: `data/en/sections/skills.yaml`
+
+Defines skills with logos and summaries.
+
+### Section Schema
+
+```yaml
+section:
+  name: Skills
+  id: skills
+  enable: true
+  weight: 2
+  showOnNavbar: true
+```
+
+### Skill Schema
+
+```yaml
+skills:
+- name: "Skill Name"                    # Required: display name
+  logo: /images/sections/skills/icon.png  # Optional: skill logo/image
+  summary: "Description of proficiency."  # Required: summary text
+  url: "https://example.com"            # Optional: link (use "#" or "" for none)
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Skill display name |
+| `logo` | No | Path to logo (relative to static/) |
+| `summary` | Yes | Description of your proficiency |
+| `url` | No | Optional link (e.g., official docs) |
+
+---
+
+## 4. about.yaml
+
+Location: `data/en/sections/about.yaml`
+
+Defines the About section: designation, company, summary, social links, resource links, and badges.
+
+### Section Schema
+
+```yaml
+section:
+  name: About
+  id: about
+  enable: true
+  weight: 1
+  showOnNavbar: true
+  template: sections/about.html   # Optional: custom template
+```
+
+### About Content Schema
+
+```yaml
+# Your current designation
+designation: "Job Title"
+
+# Current company
+company:
+  name: "Company Name"
+  url: "https://www.example.com"
+
+# Summary about you
+summary: "Your bio or summary text."
+
+# Social links (Font Awesome icons)
+socialLinks:
+- name: Email
+  icon: "fas fa-envelope"
+  url: "mailto:you@example.com"
+- name: Github
+  icon: "fab fa-github"
+  url: "https://github.com/username"
+- name: LinkedIn
+  icon: "fab fa-linkedin"
+  url: "https://linkedin.com/in/username"
+
+# Custom resource links (e.g., resume)
+resourceLinks:
+- title: "My Resume"
+  url: "files/resume.pdf"
+
+# Badges: certifications or soft-skill indicators
+badges:
+# Certification badge (Credly, Coursera, etc.)
+- type: certification
+  name: "Certification Name"
+  url: "https://credly.com/..."
+  badge: "https://images.credly.com/..."
+
+# Soft-skill circular bar
+- type: soft-skill-indicator
+  name: "Leadership"
+  percentage: 85
+  color: blue   # Or hex: "#00adb5"
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `designation` | Yes | Your job title |
+| `company.name` | Yes | Current company name |
+| `company.url` | No | Company URL |
+| `summary` | Yes | Bio/summary text |
+| `socialLinks` | No | List of `name`, `icon`, `url` |
+| `resourceLinks` | No | List of `title`, `url` (e.g., resume) |
+| `badges` | No | List of certification or soft-skill badges |
+| `badges[].type` | Yes | `certification` or `soft-skill-indicator` |
+| `badges[].name` | Yes | Badge/certification name |
+| `badges[].url` | For certification | Link to credential |
+| `badges[].badge` | For certification | Image URL for badge |
+| `badges[].percentage` | For soft-skill | 0-100 |
+| `badges[].color` | For soft-skill | Name (blue, green, etc.) or hex |
+
+---
+
+## 5. site.yaml
+
+Location: `data/en/site.yaml`
+
+Site-wide metadata: copyright, disclaimer, description, custom menus, and OpenGraph.
+
+```yaml
+# Copyright notice (footer)
+copyright: "© 2023 Copyright."
+
+# Disclaimer for footer (requires params.footer.disclaimer.enable in config.yaml)
+disclaimer: "Your disclaimer text."
+
+# Meta description for SEO
+description: "Portfolio and personal blog of Julian Wiley."
+
+# Custom navbar menus (separated by divider from section menus)
+customMenus:
+- name: Docs
+  url: https://example.com/docs/
+  hideFromNavbar: false   # Show in top navbar
+  showOnFooter: false     # Show in footer (requires footer.navigation.customMenus)
+
+# OpenGraph headers (social sharing)
+openGraph:
+  title: "Site Title"
+  type: website
+  description: "Site description for social previews."
+  image: images/author/avatar.png
+  url: https://yoursite.com
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `copyright` | No | Footer copyright text |
+| `disclaimer` | No | Footer disclaimer (if enabled) |
+| `description` | No | Meta description for SEO |
+| `customMenus` | No | List of custom navbar/footer links |
+| `openGraph` | No | OpenGraph meta tags for social sharing |
+| `openGraph.title` | No | OG title |
+| `openGraph.type` | No | Usually `website` |
+| `openGraph.description` | No | OG description |
+| `openGraph.image` | No | Path to preview image |
+| `openGraph.url` | No | Canonical site URL |
+
+---
+
+## 6. author.yaml
+
+Location: `data/en/author.yaml`
+
+Author information used in the landing page and footer.
+
+```yaml
+# Display name
+name: "Full Name"
+nickname: "Short Name"
+
+# Greeting before name (default: "Hi! I am")
+greeting: "Hi, my name is"
+
+# Author image (path relative to static/)
+image: "images/author/avatar.png"
+
+# Contact info (used in footer)
+contactInfo:
+  email: "you@example.com"
+  phone: "+1234567890"    # Optional
+  github: username
+  linkedin: profile-slug
+
+# Summary carousel items (rotating text on landing page)
+summary:
+  - "I am a Data Scientist"
+  - "I am a Developer"
+  - "I am an Entrepreneur"
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Full display name |
+| `nickname` | No | Short name |
+| `greeting` | No | Greeting prefix (default: "Hi! I am") |
+| `image` | No | Path to author image |
+| `contactInfo` | No | `email`, `phone`, `github`, `linkedin` |
+| `summary` | No | List of rotating summary strings |
+
+---
+
+## 7. recent-posts.yaml
+
+Location: `data/en/sections/recent-posts.yaml`
+
+Section configuration for the Recent Posts block. Content comes from `content/posts/`.
+
+```yaml
+section:
+  name: Recent Posts
+  id: recent-posts
+  enable: true
+  weight: 7
+  showOnNavbar: true
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `section.enable` | No | Enable or disable the section |
+| `section.weight` | No | Sort order |
+
+---
+
+## 8. education.yaml
+
+Location: `data/en/sections/education.yaml`
+
+Defines degrees, courses, grades, and extracurricular activities.
+
+### Section Schema
+
+```yaml
+section:
+  name: Education
+  id: education
+  template: sections/education.html   # Or sections/education-alt.html
+  enable: true
+  weight: 4
+  showOnNavbar: true
+```
+
+### Education Schema
+
+```yaml
+degrees:
+- name: "Degree Name"              # Required: e.g., "B.Sc. in Computer Science"
+  icon: fa-graduation-cap          # Optional: Font Awesome icon
+  timeframe: "2019-2022"           # Required: date range
+  institution:
+    name: "Institution Name"       # Required
+    url: "https://institution.edu" # Optional
+  grade:                           # Optional: overall grade
+    scale: GPA
+    achieved: 3.8
+    outOf: 4
+  takenCourses:                    # Optional: course list
+    showGrades: false              # true = table with grades; false = list, grades hidden
+    collapseAfter: 3              # Show first N, then "Show more"
+    courses:
+    - name: "Course Name"
+      achieved: 3.75
+      outOf: 4
+  extracurricularActivities:       # Optional: list of activities
+    - "Activity 1"
+    - "Activity 2"
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Degree name |
+| `icon` | No | Font Awesome icon class |
+| `timeframe` | Yes | Date range string |
+| `institution.name` | Yes | School/institution name |
+| `institution.url` | No | Institution URL |
+| `grade` | No | Overall grade (scale, achieved, outOf) |
+| `takenCourses` | No | Course list with optional grades |
+| `takenCourses.showGrades` | No | Show grades in table vs list |
+| `takenCourses.collapseAfter` | No | Number of courses before "Show more" |
+| `takenCourses.courses` | No | List of `name`, `achieved`, `outOf` |
+| `extracurricularActivities` | No | List of activity strings |
+
+---
+
+## 9. accomplishments.yaml
+
+Location: `data/en/sections/accomplishments.yaml`
+
+Certifications and courses (e.g., Coursera, Udemy).
+
+### Section Schema
+
+```yaml
+section:
+  name: Accomplishments
+  id: accomplishments
+  enable: true
+  weight: 8
+  showOnNavbar: true
+```
+
+### Accomplishment Schema
+
+```yaml
+accomplishments:
+- name: "Course or Certification Name"   # Required
+  timeline: "Oct 2018"                   # Required: completion date
+  organization:
+    name: "Coursera"                    # Required: issuer name
+    url: https://www.coursera.org       # Optional: issuer URL
+  courseOverview: "Description of the course."  # Required: summary
+  certificateURL: "https://..."        # Optional: link to certificate
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Course or certification name |
+| `timeline` | Yes | Completion date |
+| `organization.name` | Yes | Issuing organization |
+| `organization.url` | No | Organization URL |
+| `courseOverview` | Yes | Description of the course |
+| `certificateURL` | No | Link to verifiable certificate |
+
+---
+
+## 10. achievements.yaml (optional)
+
+Location: `data/en/sections/achievements.yaml`
+
+Awards, recognitions, and achievements (distinct from certifications).
+
+```yaml
+section:
+  name: Achievements
+  id: achievements
+  enable: false
+  weight: 9
+  showOnNavbar: true
+
+achievements:
+- title: "Achievement Title"           # Required
+  image: /images/sections/achievements/photo.jpg  # Optional
+  summary: "Brief description."       # Required
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | Yes | Achievement title |
+| `image` | No | Path to image |
+| `summary` | Yes | Brief description |
+
+---
+
+## 11. publications.yaml (optional)
+
+Location: `data/en/sections/publications.yaml`
+
+Academic or professional publications with filter buttons.
+
+```yaml
+section:
+  name: Publications
+  id: publications
+  enable: false
+  weight: 6
+  showOnNavbar: true
+
+buttons:
+- name: All
+  filter: "all"
+- name: "Machine Learning"
+  filter: "machinelearning"
+
+publications:
+- title: "Paper Title"                    # Required
+  publishedIn:
+    name: "Conference or Journal Name"   # Required
+    date: "7 June 2020"                  # Required
+    url: https://example.com              # Optional
+  authors:
+  - name: "Author Name"
+    url: https://example.com             # Optional
+  paper:
+    summary: "Abstract or summary."      # Required
+    url: https://example.com             # Optional
+  categories: ["machinelearning"]        # For filtering
+  tags: ["Machine Learning", "AI"]       # Display tags
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | Yes | Paper title |
+| `publishedIn.name` | Yes | Venue name |
+| `publishedIn.date` | Yes | Publication date |
+| `publishedIn.url` | No | Venue URL |
+| `authors` | No | List of `name`, `url` |
+| `paper.summary` | Yes | Abstract or summary |
+| `paper.url` | No | Link to paper |
+| `categories` | No | Filter categories (match button filters) |
+| `tags` | No | Display tags |
+

@@ -1,0 +1,245 @@
+---
+title: "Deployment Guide"
+description: "How the GitHub Pages deployment pipeline works and how to customize it."
+weight: 4
+---
+
+This guide explains how the Hugo/Toha portfolio site is deployed to GitHub Pages, including the automated pipeline, custom domain setup, manual deployment, and troubleshooting.
+
+---
+
+## 1. GitHub Pages Overview
+
+GitHub Pages provides static website hosting for repositories. Key characteristics:
+
+- **Static only**: No server-side logic (PHP, Node.js, etc.). Hugo generates static HTML, CSS, and JavaScript at build time.
+- **Free for public repos**: No cost for public repositories.
+- **Custom domains**: You can use a custom domain (e.g., `blog.example.com`) instead of `username.github.io`.
+- **Branch-based**: Content is typically served from the `gh-pages` branch or the `main` branch, depending on configuration.
+
+The site uses GitHub Actions to build Hugo and deploy the output to the `gh-pages` branch, which GitHub Pages serves automatically.
+
+---
+
+## 2. The Deployment Pipeline
+
+The deployment workflow is defined in `.github/workflows/deploy-site.yaml`.
+
+### Triggers
+
+The workflow runs when:
+
+- A push is made to the `main` branch
+
+### Runner
+
+- **OS**: `ubuntu-latest`
+- **Steps**: Checkout, Node.js setup, npm install, Hugo setup, build, deploy
+
+### Workflow Steps
+
+| Step | Action | Purpose |
+|------|--------|---------|
+| 1 | `actions/checkout@v4` | Check out the repository. Uses `submodules: true` for Hugo themes and `fetch-depth: 0` for `.GitInfo` and `.Lastmod`. |
+| 2 | `actions/setup-node@v4` | Install Node.js 20. Required by the Toha theme for asset bundling (PostCSS, etc.). |
+| 3 | `npm ci` | Install Node dependencies from `package-lock.json` for reproducible builds. |
+| 4 | `peaceiris/actions-hugo@v2` | Install Hugo 0.140.1 extended. Extended is required for SCSS/SASS support. |
+| 5 | `hugo --minify` | Build the site with minification. Output goes to `./public`. |
+| 6 | `peaceiris/actions-gh-pages@v4` | Deploy the contents of `./public` to the `gh-pages` branch. |
+
+### Workflow File Reference
+
+```yaml
+name: Deploy to Github Pages
+
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Node dependencies
+      run: npm ci
+
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@v2
+      with:
+        hugo-version: '0.140.1'
+        extended: true
+
+    - name: Build
+      run: hugo --minify
+
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: ./public
+```
+
+---
+
+## 3. Custom Domain Setup
+
+To use a custom domain (e.g., `blog.julianwiley.com`):
+
+### Step 1: Add CNAME File
+
+Create a file at `static/CNAME` containing your custom domain:
+
+```
+blog.julianwiley.com
+```
+
+Hugo copies everything in `static/` to the output directory, so `CNAME` will be deployed to the root of `gh-pages`. GitHub Pages uses this file to know which domain to serve.
+
+### Step 2: Configure DNS
+
+At your domain registrar, add a DNS record:
+
+| Type | Name | Value |
+|------|------|-------|
+| CNAME | blog (or subdomain) | `username.github.io` |
+| A | @ (for apex) | `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` |
+
+For a subdomain like `blog.example.com`, use a CNAME record pointing to `username.github.io`. For an apex domain (`example.com`), use the A records above or a CNAME flattening service if your DNS provider supports it.
+
+### Step 3: GitHub Repository Settings
+
+1. Go to **Settings** > **Pages**
+2. Under **Custom domain**, enter your domain (e.g., `blog.julianwiley.com`)
+3. Optionally enable **Enforce HTTPS** after DNS propagates
+
+### Step 4: Update baseURL
+
+In `config.yaml`, set:
+
+```yaml
+baseURL: https://blog.julianwiley.com
+```
+
+---
+
+## 4. Manual Deployment
+
+If you need to build and deploy manually (e.g., for testing or when Actions are unavailable):
+
+### Prerequisites
+
+- Node.js 20
+- Hugo 0.140.1 extended
+- Git
+
+### Build Locally
+
+```bash
+npm ci
+hugo --minify
+```
+
+Output is in `./public`.
+
+### Deploy to gh-pages Manually
+
+```bash
+# Add public as a subtree and push to gh-pages
+git subtree push --prefix public origin gh-pages
+```
+
+Or use a separate clone and force-push:
+
+```bash
+git clone --branch gh-pages https://github.com/username/repo.git public-deploy
+cd public-deploy
+rm -rf *
+cp -r ../public/* .
+git add -A
+git commit -m "Manual deploy"
+git push origin gh-pages
+```
+
+---
+
+## 5. Troubleshooting
+
+### Hugo Version Mismatch
+
+**Symptom**: Build works locally but fails in CI, or vice versa.
+
+**Fix**: Ensure local Hugo matches the workflow. Check with `hugo version` and install the extended variant:
+
+```bash
+# Example: install Hugo 0.140.1 extended (method depends on OS)
+# Windows: choco install hugo-extended
+# macOS: brew install hugo
+```
+
+Update `.github/workflows/deploy-site.yaml` if you change the Hugo version.
+
+### Node.js Dependencies
+
+**Symptom**: `npm ci` fails or build errors mention missing modules.
+
+**Fix**:
+
+- Ensure `package.json` and `package-lock.json` are committed
+- Run `npm ci` locally to verify
+- If the theme uses npm, ensure the theme's `package.json` is present (e.g., in `themes/toha/`)
+
+### Build Failures
+
+**Symptom**: `hugo --minify` fails in CI.
+
+**Fix**:
+
+- Run `hugo --minify` locally and fix any errors
+- Check for invalid YAML in `data/` (trailing commas, indentation)
+- Verify all referenced images and assets exist
+- Ensure `config.yaml` has valid syntax
+
+### Deployment Succeeds but Site Not Updated
+
+**Symptom**: Workflow completes but the live site shows old content.
+
+**Fix**:
+
+- GitHub Pages can take a few minutes to update
+- Check the `gh-pages` branch in the repo to confirm new commits
+- Clear browser cache or use incognito
+- In **Settings** > **Pages**, confirm the source is the `gh-pages` branch
+
+### 404 on Subpages
+
+**Symptom**: Homepage works but `/posts/my-post/` returns 404.
+
+**Fix**:
+
+- Ensure `baseURL` in `config.yaml` has no trailing slash
+- Verify `canonifyURLs` and `relativeURLs` if using non-root deployment
+
+---
+
+## 6. Environment Variables
+
+For the default deployment, no extra secrets are required.
+
+| Variable | Source | Purpose |
+|----------|--------|---------|
+| `GITHUB_TOKEN` | Auto-provided by GitHub Actions | Used by `peaceiris/actions-gh-pages` to push to `gh-pages` |
+
+The `GITHUB_TOKEN` has permission to push to the repository. For deployments to a different repository (e.g., `username.github.io`), you would configure a Personal Access Token (PAT) as a repository secret and pass it to the deploy action instead of `secrets.GITHUB_TOKEN`.
+

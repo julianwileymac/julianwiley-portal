@@ -18,6 +18,7 @@ import { PageContainer, ProCard, ProDescriptions } from "@/components/pro";
 import type { Project } from "@/lib/data/projects";
 import type { PostMeta } from "@/lib/mdx";
 import { brandColors } from "@/lib/theme";
+import { ProjectTopology } from "@/components/admin/ProjectTopology";
 
 const { Paragraph, Text } = Typography;
 
@@ -81,6 +82,10 @@ export function AdminProjectDetail({ project, relatedPosts }: Props) {
                 { title: "Category", dataIndex: "category" },
               ]}
             />
+          </ProCard>
+
+          <ProCard title="Topology" bordered style={{ marginTop: 16 }}>
+            <ProjectTopology project={project} />
           </ProCard>
 
           <ProCard title="Highlights" bordered style={{ marginTop: 16 }}>

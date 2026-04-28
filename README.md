@@ -113,10 +113,8 @@ Override the source path with `node scripts/migrate-posts.mjs --source /path/to/
 
 ## Outstanding migration TODOs
 
-- [ ] Re-enable real MDX (`@mdx-js/react` + `next-mdx-remote` once the React-version-mismatch issue around mixing RSC + MDX in Next.js 15 + React 18 is resolved upstream) so `<Note>`, `<Callout>`, `<Mermaid>`, `<TechStack>`, `<ProjectShowcase>`, and `<CodeTabs>` render in posts. Components are already implemented under `components/mdx/`.
-- [ ] Hand-port `{{< project-showcase >}}`, `{{< code-tabs >}}`, and `{{< tech-stack >}}` blocks in `content/posts/project-writeup-template.mdx` and `content/posts/technical-template.mdx` once MDX is back.
-- [ ] Migrate `content/notes/` (Bash, Go) from the Hugo site (deferred to Phase 3).
-- [ ] Migrate `content/docs/` (Getting Started, Tutorials, Guides) from the Hugo site (deferred to Phase 3).
+- [ ] Re-enable real MDX (`@mdx-js/react` + `next-mdx-remote` once the React-version-mismatch issue around mixing RSC + MDX in Next.js 15 + React 18 is resolved upstream) so `<Note>`, `<Callout>`, `<Mermaid>`, `<TechStack>`, `<ProjectShowcase>`, and `<CodeTabs>` render in posts/notes/docs. Components are already implemented under `components/mdx/`.
+- [ ] Hand-port `{{< project-showcase >}}`, `{{< code-tabs >}}`, and `{{< tech-stack >}}` blocks in `content/posts/project-writeup-template.mdx`, `content/posts/technical-template.mdx`, and `content/docs/guides/{content-authoring,custom-components}.mdx` once MDX is back. The migration script flags every unported shortcode at run time.
 
 ## Phase roadmap
 
@@ -140,14 +138,22 @@ Override the source path with `node scripts/migrate-posts.mjs --source /path/to/
 - [x] Both new paths registered in `rpi_kubernetes/kubernetes/kustomization.yaml`
 - [ ] One-time bootstrap (run by hand once Cloudflare account access is sorted): `cloudflared tunnel login` → `cloudflared tunnel create julianwiley-portal` → `cloudflared tunnel route dns julianwiley-portal julianwiley.com` → push the credentials JSON into `Secret/cloudflared-credentials`
 
-### Phase 3 — Polish (future round)
+### Phase 3 — Polish (shipped)
 
-- [ ] Real Entra ID + Google client IDs and role-based access
-- [ ] Live Prometheus KPIs from the cluster
-- [ ] G6 topology diagram for project deployments (`Deployment → Service → Ingress`)
-- [ ] Migrate `content/notes/` and `content/docs/` from the Hugo site
-- [ ] `/api/contact` forwards to FastAPI backend in `rpi_kubernetes/management/`
-- [ ] `301 blog.julianwiley.com/*` → `julianwiley.com/blog/*` and retire the Hugo site
+- [x] Role-based access via [`lib/access.ts`](lib/access.ts): typed `Role` (viewer/editor/admin), env-var allow-lists (`ADMIN_EMAILS`, `EDITOR_EMAILS`), sidebar items in `AdminShell` and the blog-admin / contact-inbox pages gate on role
+- [x] Live cluster KPIs via [`lib/prometheus.ts`](lib/prometheus.ts) + [`/api/metrics/kpi`](app/api/metrics/kpi/route.ts), polled with SWR every 30 s. Gracefully degrades to a "Prometheus unreachable" notice when `PROMETHEUS_URL` is unset
+- [x] G6 request-flow topology on `/app/projects/[slug]` (Browser → Cloudflare Tunnel → ingress-nginx → Service → Pod) — see [`components/admin/ProjectTopology.tsx`](components/admin/ProjectTopology.tsx)
+- [x] `content/notes` (10 files) and `content/docs` (9 files) migrated; new public `/notes` + `/docs` routes with sidebar + GFM rendering
+- [x] `/api/contact` forwards to a configurable `CONTACT_FORWARD_URL` (Slack/Discord webhook, FastAPI backend, etc.) with optional bearer auth and a 5 s timeout; falls back to console logging in local dev
+- [x] Cutover artifacts for `blog.julianwiley.com → julianwiley.com` shipped under [`julianwileymac.github.io/cutover/`](https://github.com/julianwileymac/julianwileymac.github.io/tree/main/cutover) — opt-in `baseof.html` override + Netlify-style `_redirects` + single-page hard cutover stub. Not activated by default.
+
+### Phase 3 bootstrap checklist (one-time, manual)
+
+1. Register OAuth apps in [Azure Portal](https://portal.azure.com) and the [Google Cloud Console](https://console.cloud.google.com), set the callback URL to `https://julianwiley.com/api/auth/callback/{microsoft-entra-id|google}`, push the credentials into the cluster Secret per [`portal/README.md`](https://github.com/julianwileymac/rpi_kubernetes/blob/main/kubernetes/base-services/portal/README.md).
+2. Add `ADMIN_EMAILS=julian@julianwiley.com` (or whatever email Entra/Google returns) to the same Secret so the OIDC user lands as `admin` instead of `viewer`.
+3. Set `PROMETHEUS_URL=http://prometheus-operated.observability.svc.cluster.local:9090` (or the actual service name produced by your kube-prometheus-stack install) in the portal `ConfigMap` to surface live KPIs.
+4. Optionally set `CONTACT_FORWARD_URL` (and `CONTACT_FORWARD_TOKEN`) to wire the contact form to a Slack/Discord webhook or the FastAPI management backend.
+5. When the new portal is stable, follow [`julianwileymac.github.io/cutover/README.md`](https://github.com/julianwileymac/julianwileymac.github.io/tree/main/cutover) to redirect the legacy blog.
 
 ## Deployment
 
@@ -192,12 +198,20 @@ for the one-time `cloudflared tunnel login / create / route dns` bootstrap.
 Production env vars (set in the k8s `Secret/portal-credentials` and
 `ConfigMap/portal-config` in the `web` namespace):
 
-- `AUTH_SECRET` (required) — `openssl rand -base64 32`
-- `AUTH_URL=https://julianwiley.com`
-- `AUTH_TRUST_HOST=true`
-- `AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET`, `AUTH_MICROSOFT_ENTRA_ID_ISSUER`
-- `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
-- `NEXT_PUBLIC_SITE_URL=https://julianwiley.com`
+| Var                                    | Where      | Notes |
+| -------------------------------------- | ---------- | ----- |
+| `AUTH_SECRET`                          | Secret     | Required. `openssl rand -base64 32`. |
+| `AUTH_URL`                             | ConfigMap  | `https://julianwiley.com` |
+| `AUTH_TRUST_HOST`                      | ConfigMap  | `true` |
+| `AUTH_MICROSOFT_ENTRA_ID_ID`/`_SECRET` | Secret     | OIDC; leave blank to disable the provider |
+| `AUTH_MICROSOFT_ENTRA_ID_ISSUER`       | ConfigMap  | `https://login.microsoftonline.com/common/v2.0` |
+| `AUTH_GOOGLE_ID`/`_SECRET`             | Secret     | OIDC; leave blank to disable the provider |
+| `ADMIN_EMAILS`                         | Secret     | Comma list — promotes matching OIDC users to `admin` |
+| `EDITOR_EMAILS`                        | Secret     | Comma list — promotes matching OIDC users to `editor` |
+| `PROMETHEUS_URL`                       | ConfigMap  | e.g. `http://prometheus-operated.observability.svc.cluster.local:9090`; leave blank to disable live KPIs |
+| `CONTACT_FORWARD_URL`                  | Secret     | Optional outbound webhook for contact form (Slack/Discord/FastAPI) |
+| `CONTACT_FORWARD_TOKEN`                | Secret     | Optional bearer token for the above |
+| `NEXT_PUBLIC_SITE_URL`                 | ConfigMap  | `https://julianwiley.com` |
 
 ## License
 
