@@ -1,0 +1,58 @@
+---
+title: "Dagster in the WebUI: Dashboard, Develop, and Jobs"
+date: 2026-04-22T09:00:00+00:00
+description: "How the Agentic Assistants control panel exposes Dagster through dedicated routes for status, code iteration, and job operations."
+tags: ["Agentic Assistants", "Dagster", "WebUI", "Developer Experience", "MLOps"]
+categories: ["Agentic Assistants"]
+---
+
+## Why UI Integration Matters
+
+Dagster is powerful, but context switching between tools slows teams down.
+
+Agentic Assistants addresses this by embedding Dagster into the control panel via dedicated pages:
+
+- `/dagster`
+- `/dagster/develop`
+- `/dagster/jobs`
+
+These routes are also exposed in `webui/src/components/layout/app-sidebar.tsx`, which keeps orchestration discoverable from the same navigation used for data, models, and infrastructure.
+
+## What The Dashboard Route Solves
+
+The main Dagster page (`webui/src/app/dagster/page.tsx`) aggregates:
+
+- health status
+- job count
+- asset count
+- schedule count
+- run history with status breakdown
+
+This gives a high-signal operational view without opening a second interface.
+
+## Why The "Develop" Route Is Important
+
+The integration guide describes `/dagster/develop` as an interactive authoring surface for templates and deploy/validate flows.
+
+That closes the loop between experimentation and orchestration. Instead of writing definitions in isolation, users can validate and iterate through a workflow-native UI path.
+
+## Jobs Route As Operational Surface
+
+`/dagster/jobs` focuses on execution management, which is exactly where non-author users spend time:
+
+- browse available jobs
+- inspect run history
+- launch workflows quickly
+
+This separation keeps each route focused: observe, build, operate.
+
+## Practical Takeaway
+
+If orchestration is central to your platform, put it in primary navigation and split routes by intent. A single "orchestration page" often becomes overloaded and less useful.
+
+## Related Reading
+
+- [/posts/dagster-integration-control-plane/](/posts/dagster-integration-control-plane/)
+- [/posts/dagster-api-graphql-fallbacks/](/posts/dagster-api-graphql-fallbacks/)
+- [/posts/cluster-management-dashboard/](/posts/cluster-management-dashboard/)
+

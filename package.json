@@ -1,0 +1,47 @@
+{
+  "name": "julianwiley-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal portal: public marketing/blog/projects + auth-gated admin dashboard for the rpi_kubernetes homelab.",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "migrate:posts": "tsx scripts/migrate-posts.ts"
+  },
+  "dependencies": {
+    "@ant-design/cssinjs": "^1.21.1",
+    "@ant-design/icons": "^5.5.2",
+    "@ant-design/nextjs-registry": "^1.0.2",
+    "@ant-design/plots": "^2.3.2",
+    "@ant-design/pro-components": "^2.8.3",
+    "@auth/core": "^0.37.4",
+    "antd": "^5.23.1",
+    "dayjs": "^1.11.13",
+    "gray-matter": "^4.0.3",
+    "mermaid": "^11.4.1",
+    "next": "^15.1.4",
+    "next-auth": "5.0.0-beta.25",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-pretty-code": "^0.14.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.0",
+    "shiki": "^1.27.2"
+  },
+  "devDependencies": {
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^22.10.7",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

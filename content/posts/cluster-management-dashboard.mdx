@@ -1,0 +1,129 @@
+---
+title: "Building a Cluster Management Dashboard with FastAPI and Next.js"
+date: 2026-02-19T09:00:00+00:00
+description: "Designing and building a web-based control panel for monitoring and managing a Raspberry Pi Kubernetes cluster."
+tags: ["FastAPI", "Next.js", "Dashboard", "Kubernetes", "React"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why a Custom Dashboard?
+
+Grafana handles metrics visualization, and the Kubernetes dashboard shows cluster state. But neither provides an integrated view tailored to a homelab ML platform -- you can't see node health, running ML experiments, storage usage, and service status in a single pane.
+
+The management application (`management/`) is a custom control panel built with FastAPI (backend) and Next.js 14 (frontend).
+
+## Backend: FastAPI
+
+The backend (`management/backend/`) aggregates data from multiple sources:
+
+```python
+from fastapi import FastAPI
+from kubernetes import client, config
+
+app = FastAPI(title="Cluster Management API")
+
+@app.get("/api/nodes")
+async def get_nodes():
+    config.load_incluster_config()
+    v1 = client.CoreV1Api()
+    nodes = v1.list_node()
+    return [
+        {
+            "name": node.metadata.name,
+            "status": get_node_condition(node, "Ready"),
+            "arch": node.metadata.labels.get("kubernetes.io/arch"),
+            "cpu_capacity": node.status.capacity["cpu"],
+            "memory_capacity": node.status.capacity["memory"],
+            "pods": count_node_pods(node.metadata.name),
+        }
+        for node in nodes.items
+    ]
+
+@app.get("/api/services")
+async def get_services():
+    """Aggregate status from all managed services."""
+    return {
+        "mlflow": await check_service("mlflow", "ml-platform", 5000),
+        "minio": await check_service("minio", "data-services", 9000),
+        "grafana": await check_service("grafana", "observability", 3000),
+        "jupyterhub": await check_service("jupyterhub", "ml-platform", 8000),
+    }
+```
+
+The API talks to the Kubernetes API (node status, pod health, resource usage), MLFlow (experiments, models, runs), MinIO (storage metrics), and service health endpoints.
+
+It's deployed as a Kubernetes Deployment with RBAC permissions:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: management-api-role
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "services", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+```
+
+## Frontend: Next.js 14
+
+The frontend (`management/frontend/`) is built with Next.js 14, React 18, and TanStack Query for data fetching.
+
+Key pages:
+
+- **Dashboard** -- Overview cards showing cluster health, node status, running experiments, storage usage
+- **Nodes** -- Detailed view of each node: CPU, memory, disk, running pods, temperature (via host metrics)
+- **Services** -- Status and quick actions for each deployed service
+- **MLFlow** -- Embedded MLFlow UI with experiment summaries
+- **Logs** -- Loki log viewer with namespace and pod filtering
+
+TanStack Query handles polling and caching:
+
+```typescript
+const { data: nodes } = useQuery({
+  queryKey: ['nodes'],
+  queryFn: () => fetch('/api/nodes').then(r => r.json()),
+  refetchInterval: 10000,
+});
+```
+
+## Multi-Arch Docker Build
+
+The management images need to run on both x86_64 (control plane) and ARM64 (Pi nodes):
+
+```dockerfile
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/static ./.next/static
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+The `--platform=$BUILDPLATFORM` flag lets Docker build on the host architecture and cross-compile the runtime image for ARM64.
+
+## Build and Deploy
+
+The build script (`bootstrap/scripts/build-management.sh`) builds images on the control plane and pushes to a local registry, avoiding the need for Docker Hub:
+
+```bash
+docker build -t localhost:5000/management-backend:latest ./management/backend
+docker build -t localhost:5000/management-frontend:latest ./management/frontend
+docker push localhost:5000/management-backend:latest
+docker push localhost:5000/management-frontend:latest
+kubectl rollout restart deployment -n management
+```
+
+The dashboard provides a practical, at-a-glance view of the entire cluster without needing to juggle multiple tools.
+

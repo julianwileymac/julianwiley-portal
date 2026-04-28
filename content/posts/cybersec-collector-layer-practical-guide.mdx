@@ -1,0 +1,48 @@
+---
+title: "Collector Layer Design in CyberSec Dashboard"
+date: 2026-05-08T09:00:00+00:00
+description: "A practical look at how network, memory, logs, registry, and process collectors are structured and coordinated in cybersec_dashboard."
+tags: ["CyberSec Dashboard", "Collectors", "Scapy", "Forensics", "Python"]
+categories: ["CyberSec Dashboard"]
+---
+
+## Why Collectors Need Discipline
+
+Security platforms fail when ingest becomes inconsistent. `cybersec_dashboard/engine/collectors/` keeps ingestion modular with a common base collector and domain-specific implementations:
+
+- network (`network.py`)
+- memory (`memory.py`)
+- logs (`logs.py`)
+- registry (`registry.py`)
+- process (`process.py`)
+
+## The Advantage Of Separate Collectors
+
+Each source has unique runtime constraints. Network capture does not behave like memory dump processing, and registry monitoring does not behave like log tailing.
+
+Separate collectors prevent one telemetry model from polluting all others.
+
+## Runtime Integrations Are Explicit
+
+The project includes wrappers in `engine/integrations/` for capabilities like packet capture and memory tooling. That keeps OS/runtime checks out of business logic and makes failures easier to classify.
+
+## Design Pattern I Reused
+
+The pattern that works well:
+
+1. normalize each collector output to typed pipeline events
+2. keep source-specific complexity local
+3. let analyzers consume normalized payloads only
+
+This is what allows broad telemetry support without overwhelming downstream analysis code.
+
+## Practical Takeaway
+
+If your security engine supports multiple telemetry surfaces, isolate source logic aggressively. A clean collector layer is the difference between extensibility and entropy.
+
+## Related Reading
+
+- [/posts/cybersec-engine-planner-worker-design/](/posts/cybersec-engine-planner-worker-design/)
+- [/posts/cybersec-analyzer-layer-correlation/](/posts/cybersec-analyzer-layer-correlation/)
+- [/posts/cybersec-kubernetes-observability-stack/](/posts/cybersec-kubernetes-observability-stack/)
+

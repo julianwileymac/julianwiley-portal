@@ -1,0 +1,49 @@
+---
+title: "Traffic Tokenization for Security ML"
+date: 2026-05-10T09:00:00+00:00
+description: "How cybersec_dashboard tokenizes packet data into model-ready representations and why this design matters for transformer-based traffic analysis."
+tags: ["CyberSec Dashboard", "Machine Learning", "Transformers", "Network Security", "Tokenization"]
+categories: ["CyberSec Dashboard"]
+---
+
+## Why Packet Data Needs Translation
+
+Raw packet bytes are not directly usable by transformer models. `cybersec_dashboard` handles this in `engine/ml/tokenizer.py` and related ML modules, converting traffic into structured model input.
+
+The project README frames this as NetGPT-inspired processing, which is a practical way to bring sequence modeling ideas into network analytics.
+
+## Architecture Components
+
+The ML path is split across:
+
+- `tokenizer.py` for encoding
+- `features.py` for derived representations
+- `traffic_model.py` for model interface
+- `inference.py` for runtime pipeline behavior
+
+That modular split is useful because tokenization and inference tuning usually evolve at different speeds.
+
+## Why This Design Helps
+
+By isolating tokenization, the system can:
+
+- compare encoding strategies
+- keep feature extraction testable
+- reuse inference infrastructure across model variants
+
+This reduces coupling between research iteration and production execution.
+
+## Practical Constraints
+
+Security telemetry can be noisy and high-volume. Tokenization choices directly affect latency, memory pressure, and detection quality. Keeping those choices explicit in module boundaries is a strong engineering decision.
+
+## Practical Takeaway
+
+For transformer-based traffic analysis, tokenization is not a preprocessing footnote. It is a core architecture decision that should be versioned, tested, and observable.
+
+## Related Reading
+
+- [/posts/batched-inference-cache-patterns/](/posts/batched-inference-cache-patterns/)
+- [/posts/lora-qlora-security-model-tuning/](/posts/lora-qlora-security-model-tuning/)
+- [/posts/cybersec-engine-planner-worker-design/](/posts/cybersec-engine-planner-worker-design/)
+

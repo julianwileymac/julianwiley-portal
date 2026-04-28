@@ -1,0 +1,61 @@
+---
+title: "RAG Eval Playground: Building a Real Evaluation Loop Locally"
+date: 2026-04-13T09:00:00+00:00
+description: "How to use the RAG Eval Playground starter to move from anecdotal prompting to measurable retrieval and answer quality."
+tags: ["Agentic Assistants", "RAG", "Evaluation", "Local AI", "Quality"]
+categories: ["Agentic Assistants"]
+---
+
+## Why This Starter Exists
+
+RAG systems often fail silently. They look fine in demos, then miss critical context in production.
+
+The `examples/starters/rag-eval-playground/` starter exists to prevent that by making evaluation part of normal development instead of a late-stage check.
+
+## What The Starter Gives You
+
+The starter includes:
+
+- a dedicated `config.yaml`
+- an evaluation script (`evaluate.py`)
+- a focused README for repeatable setup
+
+That simple structure encourages a feedback cycle: ingest -> query -> score -> adjust -> repeat.
+
+## Metrics Before Opinions
+
+A practical local workflow should track at least:
+
+1. retrieval relevance
+2. answer groundedness
+3. answer completeness
+
+Even rough baseline metrics are better than confidence built from a few successful prompts.
+
+## Local-First Advantage
+
+Running the loop locally has a hidden advantage: faster iteration on chunking, embeddings, and prompt templates without waiting on external infra changes.
+
+That makes it easier to isolate whether poor quality comes from retrieval, prompt construction, or model behavior.
+
+## How I Use It With Other Starters
+
+I usually pair this starter with:
+
+- `local-rag-studio` for baseline behavior
+- `hybrid-cache-rag-assistant` when latency tuning begins
+
+This creates a pattern where one starter explores behavior and another validates quality under change.
+
+## Practical Takeaway
+
+The best time to add evaluation is when your first retrieval pipeline works, not when stakeholders ask why answers drifted.
+
+The RAG Eval Playground gives a small but effective structure for that discipline.
+
+## Related Reading
+
+- [/posts/local-rag-coding-assistant/](/posts/local-rag-coding-assistant/)
+- [/posts/mlops-mlflow-opentelemetry/](/posts/mlops-mlflow-opentelemetry/)
+- [/posts/starter-projects-local-first-playbook/](/posts/starter-projects-local-first-playbook/)
+

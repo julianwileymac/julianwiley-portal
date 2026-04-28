@@ -1,0 +1,58 @@
+---
+title: "CDC Sync on k3s: Watermarks, Deltas, and Replay Windows"
+date: 2026-05-03T09:00:00+00:00
+description: "How the CDC sync workflow in rpi_kubernetes handles incremental extraction and what to harden for reliable long-running operation."
+tags: ["RPi Kubernetes", "CDC", "Data Pipeline", "PostgreSQL", "Argo Workflows"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why CDC Matters Here
+
+Batch reloads are simple, but they do not scale operationally once source tables change frequently.
+
+The `pipeline-cdc-sync` recipe in `docs/data-pipeline-recipes.md` introduces incremental behavior using primary key and updated-at watermarks.
+
+## Recipe Flow
+
+The documented run path:
+
+```bash
+argo submit --from workflowtemplate/pipeline-cdc-sync -n mlops \
+  -p source_table=source_events \
+  -p primary_key=id \
+  -p updated_at_column=updated_at
+```
+
+State is tracked in `pipeline_cdc_state`, and changed data is persisted to MinIO plus sink targets.
+
+## Why Watermarks Are Tricky
+
+CDC pipelines fail in subtle ways:
+
+- late-arriving records
+- clock skew
+- update collisions
+
+That is why replay windows and conflict policy need explicit ownership. The recipe notes this as hardening work, which is exactly right.
+
+## Operational Guidance
+
+I recommend adding:
+
+1. overlap windows on extraction
+2. idempotent sink writes
+3. explicit upsert vs append rules by table
+4. alerting when watermark staleness exceeds threshold
+
+Without these, "incremental" eventually turns into data drift.
+
+## Practical Takeaway
+
+CDC is less about extraction code and more about state correctness over time. Keep state visible, test replay paths, and treat watermarks like production control data.
+
+## Related Reading
+
+- [/posts/pipeline-recipe-raw-ingest-minio/](/posts/pipeline-recipe-raw-ingest-minio/)
+- [/posts/vector-sync-milvus-chromadb/](/posts/vector-sync-milvus-chromadb/)
+- [/posts/datahub-iceberg-metadata-bridge/](/posts/datahub-iceberg-metadata-bridge/)
+

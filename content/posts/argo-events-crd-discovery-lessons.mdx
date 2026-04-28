@@ -1,0 +1,51 @@
+---
+title: "Argo Workflows vs Argo Events: CRD Discovery Lessons"
+date: 2026-04-29T09:00:00+00:00
+description: "A practical debugging guide from rpi_kubernetes on why Argo Workflows can surface missing Argo Events CRDs and how to fix it cleanly."
+tags: ["RPi Kubernetes", "Argo Workflows", "Argo Events", "Kubernetes", "MLOps"]
+categories: ["RPi Kubernetes"]
+---
+
+## The Symptom
+
+A common error in mixed Argo setups is:
+
+`Not Found: the server could not find the requested resource (get sensors.argoproj.io)`
+
+`docs/mlops-workflows.md` calls this out directly, and that documentation detail saves real debugging time.
+
+## Why It Happens
+
+Argo Workflows and Argo Events are related but separate systems:
+
+- Workflows provides `Workflow`, `WorkflowTemplate`, `CronWorkflow`
+- Events provides `Sensor`, `EventSource`, `EventBus`
+
+Some workflow UI/API paths still interact with events resource discovery. If Argo Events CRDs are missing, discovery breaks even when Workflows itself appears installed.
+
+## The Fix Pattern
+
+The repo captures the correct sequence:
+
+1. install/upgrade Argo Events Helm release
+2. apply `kubernetes/mlops/argo-events/` resources
+3. verify CRDs (`sensors.argoproj.io`, `eventsources.argoproj.io`, `eventbus.argoproj.io`)
+
+This is cleaner than random reinstalls or namespace guessing.
+
+## Why This Is A Good Platform Habit
+
+Documenting cross-component expectations is just as important as declaring manifests. CRD-level dependencies are easy to miss in fast-moving homelab clusters.
+
+The `rpi_kubernetes` guide treats that reality explicitly, which is why it reads like a runbook instead of a generic tutorial.
+
+## Practical Takeaway
+
+When Argo behaves inconsistently, check CRD availability before touching workflow specs. Control-plane correctness often fails before workload YAML does.
+
+## Related Reading
+
+- [/posts/dagster-on-homelab-k3s/](/posts/dagster-on-homelab-k3s/)
+- [/posts/pipeline-recipe-raw-ingest-minio/](/posts/pipeline-recipe-raw-ingest-minio/)
+- [/posts/pipeline-recipe-hybrid-dagster-argo/](/posts/pipeline-recipe-hybrid-dagster-argo/)
+

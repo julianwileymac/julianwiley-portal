@@ -1,0 +1,53 @@
+---
+title: "Deploying RAGFlow in the RPi Kubernetes Platform"
+date: 2026-04-27T09:00:00+00:00
+description: "What changed when RAGFlow was added to rpi_kubernetes and how it fits into the existing Postgres, MinIO, Redis, and search stack."
+tags: ["RPi Kubernetes", "RAGFlow", "RAG", "Kubernetes", "Homelab AI"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why RAGFlow Was A Big Addition
+
+RAGFlow moved the cluster from "components for RAG" to a more integrated RAG application surface.
+
+The service manifests under `kubernetes/base-services/ragflow/` include:
+
+- deployment
+- service
+- PVC
+- configmap and secrets
+- dedicated Redis deployment
+
+This was not just a single deployment file. It was a full service package.
+
+## Integration Context
+
+RAGFlow fits naturally into the broader platform because core dependencies were already present:
+
+- object storage (MinIO)
+- relational metadata (PostgreSQL)
+- orchestration and pipelines
+- observability stack
+
+That reduced integration friction and made RAGFlow a composable service instead of an isolated experiment.
+
+## What I Like About The Manifests
+
+The kustomize inclusion in `kubernetes/kustomization.yaml` makes RAGFlow a first-class platform service. That matters because platform teams tend to forget services that are not part of the main deploy path.
+
+I also like that storage and config are explicit, which makes troubleshooting and migration easier.
+
+## Practical Constraints
+
+On mixed ARM/AMD homelab environments, resource profiles and image compatibility become real concerns. Keeping RAGFlow pinned and clearly declared in manifests is safer than floating upgrades.
+
+## Practical Takeaway
+
+If you are adding a higher-level RAG service to a homelab cluster, treat it like a platform component with full manifest ownership, not a one-off deployment command.
+
+## Related Reading
+
+- [/posts/rpi-kustomize-service-map-2026/](/posts/rpi-kustomize-service-map-2026/)
+- [/posts/local-rag-coding-assistant/](/posts/local-rag-coding-assistant/)
+- [/posts/pipeline-recipe-hybrid-dagster-argo/](/posts/pipeline-recipe-hybrid-dagster-argo/)
+

@@ -1,0 +1,50 @@
+---
+title: "mDNS Cluster Discovery and Auto-Recovery in rpi_kubernetes"
+date: 2026-05-04T09:00:00+00:00
+description: "How mDNS, health monitoring, and k3s agent recovery scripts reduced cluster fragility in the Raspberry Pi environment."
+tags: ["RPi Kubernetes", "mDNS", "Avahi", "Automation", "Reliability"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why This Change Was High Impact
+
+Static-IP workflows are brittle in home and lab networks.
+
+`rpi_kubernetes` moved to mDNS-centered discovery with Avahi, plus health and recovery scripts:
+
+- `bootstrap/scripts/discover_cluster.py`
+- `bootstrap/scripts/cluster_health_monitor.py`
+- `bootstrap/scripts/k3s-agent-recovery.sh`
+
+That combination improved both day-one setup and day-two recovery.
+
+## The Operational Pattern
+
+The pattern is straightforward:
+
+1. discover nodes by hostname where possible
+2. validate cluster health continuously
+3. auto-recover workers when agent connectivity fails
+
+This is exactly the right level of automation for small clusters: simple enough to trust, strong enough to prevent repeated manual intervention.
+
+## Known Edge Cases
+
+`DEPLOYMENT_STATUS.md` documents a real issue: control-plane hostname resolution mismatch. That transparency matters. A good runbook includes partial failures, not only success paths.
+
+The project also keeps fallback discovery paths for environments where multicast DNS is unreliable.
+
+## Why This Is Better Than "Just Use Static IPs"
+
+Static mapping can work, but it increases maintenance overhead after reimaging, DHCP churn, or network changes. Discovery + health checks shifts that burden from humans to repeatable scripts.
+
+## Practical Takeaway
+
+For Raspberry Pi clusters, networking automation is reliability work, not convenience work. mDNS discovery paired with health and recovery scripts is one of the highest ROI improvements you can make.
+
+## Related Reading
+
+- [/posts/mdns-node-discovery/](/posts/mdns-node-discovery/)
+- [/posts/ansible-cluster-bootstrap/](/posts/ansible-cluster-bootstrap/)
+- [/posts/grafana-port-3000-conflict-fix/](/posts/grafana-port-3000-conflict-fix/)
+

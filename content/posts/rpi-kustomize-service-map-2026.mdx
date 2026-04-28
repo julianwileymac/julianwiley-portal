@@ -1,0 +1,50 @@
+---
+title: "Mapping the 2026 RPi Kubernetes Service Expansion"
+date: 2026-04-25T09:00:00+00:00
+description: "How the root kustomization in rpi_kubernetes evolved into a full multi-service platform spanning data, MLOps, and observability."
+tags: ["RPi Kubernetes", "Kustomize", "Homelab", "MLOps", "Infrastructure"]
+categories: ["RPi Kubernetes"]
+---
+
+## The Big Shift
+
+The most important file in this phase of `rpi_kubernetes` is still `kubernetes/kustomization.yaml`.
+
+It now acts as a platform map, not just a deployment list. The resource set spans:
+
+- base data services (`minio`, `postgresql`, `mlflow`, `chromadb`, `ragflow`, `datahub`)
+- observability (`otel-collector`, `jaeger`, `victoriametrics`, `prometheus`)
+- MLOps (`argo-workflows`, `dagster`, `pipelines`, `bentoml`)
+
+That is a meaningful jump from a basic homelab to a real local platform.
+
+## Why This Matters On Raspberry Pi
+
+On constrained hardware, integration mistakes are expensive. A single source-of-truth kustomization reduces drift and makes service composition explicit.
+
+It also clarifies what is intentionally out-of-band. The file comments call out Helm-managed components like Loki and kube-prometheus-stack, which prevents false assumptions when `kubectl apply -k kubernetes/` appears successful but dashboards are incomplete.
+
+## Practical Operational Benefit
+
+This explicit map improves:
+
+- onboarding for new contributors
+- debugging of missing dependencies
+- upgrade planning across service layers
+
+I treat this file as a deployment contract: if a new platform capability is "real," it should be represented here or intentionally documented as external.
+
+## What I Learned
+
+A growing cluster fails less from missing YAML and more from unclear boundaries. The combination of kustomize resources plus documented Helm exceptions is a good pattern for mixed deployment models.
+
+## Practical Takeaway
+
+If your homelab is becoming a platform, design your root kustomization as an architecture index with explicit inclusion and exclusion rules. It scales better than organic service sprawl.
+
+## Related Reading
+
+- [/posts/rpi5-kubernetes-cluster/](/posts/rpi5-kubernetes-cluster/)
+- [/posts/observability-stack-k8s/](/posts/observability-stack-k8s/)
+- [/posts/dagster-on-homelab-k3s/](/posts/dagster-on-homelab-k3s/)
+

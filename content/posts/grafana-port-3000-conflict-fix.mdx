@@ -1,0 +1,51 @@
+---
+title: "Grafana Port 3000 Conflict: Incident and Fix Pattern"
+date: 2026-05-05T09:00:00+00:00
+description: "A postmortem-style walkthrough of the Grafana port 3000 conflict in rpi_kubernetes and the scripted recovery path."
+tags: ["RPi Kubernetes", "Grafana", "Troubleshooting", "Operations", "SRE"]
+categories: ["RPi Kubernetes"]
+---
+
+## The Incident
+
+A host-level service and cluster-level Grafana both wanted port 3000. The result: unstable access patterns and startup issues.
+
+This failure mode was documented directly in `GRAFANA_PORT_FIX.md` and supported by `bootstrap/scripts/fix-grafana.ps1`.
+
+## Why This Matters
+
+Port conflicts are common in hybrid homelab setups where host services, local dev services, and Kubernetes workloads coexist.
+
+The important part is not that conflict happened. The important part is that the project captured a repeatable runbook rather than relying on one-time terminal fixes.
+
+## Good Incident Hygiene
+
+I liked three things in this response:
+
+1. issue got a dedicated guide file
+2. fix path was scripted
+3. surrounding docs were updated so future deployments start from safer defaults
+
+That is exactly how small teams can keep reliability debt under control.
+
+## What To Standardize
+
+After this kind of issue, I recommend adding a simple "port ownership matrix" for key services:
+
+- host ports
+- NodePort values
+- ingress paths
+- external LB exposures
+
+It prevents recurring collisions as new services are added.
+
+## Practical Takeaway
+
+Treat port conflicts as architecture feedback. If your platform keeps hitting them, improve service boundary documentation and automate verification in bootstrap scripts.
+
+## Related Reading
+
+- [/posts/observability-stack-k8s/](/posts/observability-stack-k8s/)
+- [/posts/cluster-management-dashboard/](/posts/cluster-management-dashboard/)
+- [/posts/rpi-kustomize-service-map-2026/](/posts/rpi-kustomize-service-map-2026/)
+

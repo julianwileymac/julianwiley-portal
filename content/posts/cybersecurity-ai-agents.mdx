@@ -1,0 +1,81 @@
+---
+title: "Building a Cybersecurity Hub with AI Agents"
+date: 2026-02-10T09:00:00+00:00
+description: "How the Agentic Assistants cybersecurity example uses AI agents for red/blue team operations, vulnerability scanning, and log analysis."
+tags: ["Cybersecurity", "AI Agents", "Security", "Automation", "Python"]
+categories: ["Agentic Assistants"]
+---
+
+## AI-Powered Security Operations
+
+The cybersecurity hub (`examples/cybersec-hub/`) is one of the more ambitious example projects in Agentic Assistants. It demonstrates how multi-agent systems can automate security workflows that traditionally require specialized human analysts.
+
+The hub includes agents for red team operations (offensive), blue team operations (defensive), and ML-powered anomaly detection.
+
+## Architecture
+
+The system is organized around specialized agent crews:
+
+```yaml
+agents:
+  red_team:
+    - vulnerability_scanner
+    - exploitation_analyst
+    - social_engineering_researcher
+  blue_team:
+    - log_analyzer
+    - incident_responder
+    - threat_intelligence_collector
+  ml_pipeline:
+    - anomaly_detector
+    - vulnerability_predictor
+```
+
+Each agent has access to specific security tools wrapped as Python functions that the LLM can invoke.
+
+## Tool Wrappers
+
+Rather than giving agents raw shell access (a security nightmare), the hub wraps common security tools with structured interfaces:
+
+```python
+@tool("nmap_scan")
+def nmap_scan(target: str, scan_type: str = "service") -> ScanResult:
+    """Run an nmap scan against a target host."""
+    allowed_types = {"service": "-sV", "os": "-O", "quick": "-F"}
+    flags = allowed_types.get(scan_type, "-F")
+    result = subprocess.run(
+        ["nmap", flags, target],
+        capture_output=True, text=True, timeout=120
+    )
+    return parse_nmap_output(result.stdout)
+```
+
+Tools include wrappers for nmap, nikto, and custom Python-based scanners. Each wrapper validates inputs, enforces timeouts, and returns structured data rather than raw text.
+
+## Red Team Workflows
+
+The red team crew runs a sequential workflow:
+
+1. **Reconnaissance** -- The scanner agent maps the target's attack surface
+2. **Vulnerability Analysis** -- Results are analyzed for exploitable weaknesses
+3. **Risk Assessment** -- Findings are prioritized by severity and exploitability
+4. **Report Generation** -- A structured report is produced with remediation recommendations
+
+The key insight is that LLMs are surprisingly good at correlating scan results with known vulnerability databases and generating human-readable risk assessments.
+
+## Blue Team and Log Analysis
+
+The blue team agents focus on defensive operations. The log analyzer ingests system logs, identifies anomalous patterns, and correlates events across data sources. The incident responder takes flagged events and runs a structured triage process.
+
+## ML-Powered Anomaly Detection
+
+Beyond the LLM-based agents, the hub includes traditional ML models for network anomaly detection and vulnerability prediction. These run as pipeline nodes that feed their outputs into the agent system -- combining statistical anomaly detection with LLM-powered reasoning about what the anomalies mean.
+
+## VPN and Proxy Management
+
+The hub also includes VPN and proxy management for conducting authorized security assessments from controlled network positions, with configuration managed through the same YAML system used throughout the framework.
+
+## Responsible Use
+
+This is designed for authorized security testing only. The tools include safeguards: scope limiting (only scan targets you specify), audit logging of all actions, and configurable approval gates before any active scanning begins.
+

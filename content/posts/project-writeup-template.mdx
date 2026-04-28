@@ -1,0 +1,157 @@
+---
+title: "Project Write-Up: [Project Name]"
+date: 2026-02-14T14:00:00+00:00
+draft: true
+description: "A detailed write-up of the [Project Name] project -- architecture, implementation, and lessons learned."
+tags: ["Project", "Machine Learning"]
+categories: ["Projects"]
+---
+
+<!-- ============================================================
+  TEMPLATE: Project Write-Up Post
+  
+  This template is designed for detailed project write-ups that
+  complement the portfolio cards on the homepage. Duplicate this
+  folder, rename it, and customize.
+  
+  Remove `draft: true` from the frontmatter when ready to publish.
+  ============================================================ -->
+
+## Overview
+
+<!-- Brief 2-3 sentence overview. What is this project and what does it do? -->
+
+This post is a detailed write-up of [Project Name], a project I built to [brief purpose]. The project is available on [GitHub](https://github.com/julianwileymac/your-repo).
+
+<!-- Embed the project card from your portfolio data -->
+
+<UnportedShortcode source={"
+<UnportedShortcode source={"{{< project-showcase name=\\\"Predicting Economic Recessions\\\" >}}"} />
+
+<UnportedShortcode source={"{{< /project-showcase >}}"} />
+"} />
+
+
+## Motivation
+
+<!-- Why did you build this? What problem were you trying to solve? -->
+
+The motivation for this project came from [explain context]. I wanted to explore whether [hypothesis or goal].
+
+## Architecture
+
+<!-- Describe the system architecture. Use a mermaid diagram if helpful. -->
+
+The system is composed of three main components:
+
+<Mermaid>{`
+graph LR
+    A[Data Ingestion] --> B[Feature Engineering]
+    B --> C[Model Training]
+    C --> D[Evaluation]
+    D --> E[Deployment]
+`}</Mermaid>
+
+### Data Pipeline
+
+<!-- Describe data sources, preprocessing steps, and storage. -->
+
+Data is sourced from [source] and processed through a pipeline that:
+
+1. Ingests raw data from [source]
+2. Cleans and validates the data
+3. Engineers features for model consumption
+
+### Model Architecture
+
+<!-- Describe the ML model(s) used. -->
+
+I evaluated several approaches:
+
+| Model             | Pros                      | Cons                    |
+|-------------------|---------------------------|-------------------------|
+| Random Forest     | Interpretable, fast       | Limited on sequences    |
+| LSTM              | Handles sequences well    | Slow to train           |
+| Gradient Boosting | Strong tabular performance| Requires careful tuning |
+
+### Technology Stack
+
+
+<UnportedShortcode source={"
+<UnportedShortcode source={"{{< tech-stack items=\\\"Python,PySpark,TensorFlow,AWS S3,Docker\\\" >}}"} />
+"} />
+
+<UnportedShortcode source={"{{< /tech-stack >}}"} />
+
+
+## Implementation
+
+<!-- Walk through key implementation details with code snippets. -->
+
+### Key Code Highlights
+
+```python
+class AlphaFactor:
+    """Base class for alpha factor computation."""
+    
+    def __init__(self, lookback: int = 20):
+        self.lookback = lookback
+    
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        raise NotImplementedError
+```
+
+
+<UnportedShortcode source={"{{< callout type=\"tip\" title=\"Implementation Note\" >}}"} />
+
+When computing rolling features on financial data, always be careful about look-ahead bias. Use `.shift(1)` to ensure you only use data available at prediction time.
+
+<UnportedShortcode source={"{{< /callout >}}"} />
+
+
+## Results
+
+<!-- Present results with metrics, charts, or tables. -->
+
+### Performance Metrics
+
+| Metric          | Value  |
+|-----------------|--------|
+| Sharpe Ratio    | 1.42   |
+| Max Drawdown    | -8.3%  |
+| Annual Return   | 12.7%  |
+
+### Key Findings
+
+1. **Finding 1** -- Description
+2. **Finding 2** -- Description
+
+## Challenges and Lessons Learned
+
+<!-- What went wrong? What would you do differently? -->
+
+
+<UnportedShortcode source={"{{< callout type=\"warning\" title=\"Lesson Learned\" >}}"} />
+
+One of the biggest challenges was [describe challenge]. In hindsight, I would [what you'd do differently].
+
+<UnportedShortcode source={"{{< /callout >}}"} />
+
+
+- **Challenge 1** -- How you overcame it
+- **Challenge 2** -- How you overcame it
+
+## Future Work
+
+<!-- What's next for this project? -->
+
+- [ ] Implement [feature]
+- [ ] Explore [technique]
+- [ ] Deploy to [platform]
+
+## Links
+
+- **Repository**: [GitHub](https://github.com/julianwileymac/your-repo)
+- **Live Demo**: [Link](https://example.com) (if applicable)
+- **Related Post**: [Link to related blog post](/posts/related-post/) (if applicable)
+

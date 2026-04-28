@@ -1,0 +1,76 @@
+---
+title: "Multi-Agent Orchestration with CrewAI and LangGraph"
+date: 2026-01-17T09:00:00+00:00
+description: "How Agentic Assistants uses the adapter pattern to support CrewAI and LangGraph as interchangeable multi-agent backends."
+tags: ["CrewAI", "LangGraph", "Multi-Agent", "AI", "Python"]
+categories: ["Agentic Assistants"]
+---
+
+## The Multi-Agent Problem
+
+Building production multi-agent systems means choosing an orchestration framework early, and that choice has deep implications. CrewAI excels at role-based sequential workflows. LangGraph provides fine-grained control over stateful computation graphs. AutoGen offers conversational patterns. Each has trade-offs.
+
+Agentic Assistants solves this with a uniform adapter interface -- you define your agents and tasks once, and the framework handles the translation to whichever backend you choose.
+
+## The Adapter Interface
+
+Every agent framework adapter implements a common protocol:
+
+```python
+class AgentAdapter(Protocol):
+    def create_agent(self, config: AgentConfig) -> Any: ...
+    def create_task(self, config: TaskConfig) -> Any: ...
+    def execute(self, agents: list, tasks: list, **kwargs) -> ExecutionResult: ...
+```
+
+This means switching from CrewAI to LangGraph is a one-line config change rather than a rewrite of your agent definitions.
+
+## CrewAI Adapter
+
+The CrewAI adapter (`adapters/crewai_adapter.py`) maps agent configs to CrewAI's `Agent` and `Task` objects, then assembles them into a `Crew`. It supports CrewAI's sequential and hierarchical process types, tool binding, and memory.
+
+A typical workflow definition looks like:
+
+```yaml
+framework: crewai
+process: sequential
+agents:
+  - name: researcher
+    role: "Senior Research Analyst"
+    goal: "Find comprehensive data on the topic"
+    tools: [web_search, document_reader]
+  - name: writer
+    role: "Technical Writer"
+    goal: "Produce a clear, detailed report"
+    tools: [text_formatter]
+```
+
+The adapter translates this YAML into CrewAI objects, injects the appropriate LLM (via Ollama), and executes the crew.
+
+## LangGraph Adapter
+
+The LangGraph adapter (`adapters/langgraph_adapter.py`) takes a different approach. Instead of role-based crews, it constructs a `StateGraph` where each node is an agent or tool invocation, and edges define the control flow.
+
+This is more powerful for complex workflows -- conditional branching, parallel execution, human-in-the-loop checkpoints, and cyclic graphs are all natively supported.
+
+```python
+graph = StateGraph(AgentState)
+graph.add_node("research", research_agent)
+graph.add_node("analyze", analysis_agent)
+graph.add_node("decide", routing_function)
+
+graph.add_edge("research", "decide")
+graph.add_conditional_edges("decide", route_logic, {
+    "needs_more": "research",
+    "ready": "analyze"
+})
+```
+
+## When to Use Which
+
+**CrewAI** works best for straightforward, role-based pipelines: research -> analyze -> write. The mental model is a team of specialists with a clear chain of responsibility.
+
+**LangGraph** shines when you need complex control flow: retry loops, conditional routing, parallel branches, or stateful multi-turn interactions. The overhead is higher, but the flexibility is worth it for non-trivial workflows.
+
+The adapter pattern means you can prototype with CrewAI's simplicity and migrate to LangGraph when complexity demands it -- without changing your agent definitions or tool integrations.
+

@@ -1,0 +1,131 @@
+---
+title: "Automated Node Discovery with mDNS and Avahi"
+date: 2026-01-21T09:00:00+00:00
+description: "How to use mDNS/Avahi for zero-configuration node discovery in a Raspberry Pi Kubernetes cluster -- no static IPs required."
+tags: ["mDNS", "Avahi", "Networking", "Raspberry Pi", "Automation"]
+categories: ["RPi Kubernetes"]
+---
+
+## The Static IP Problem
+
+Traditional cluster setups require you to assign static IPs to every node, maintain a mapping file, and update it whenever your network changes. This is tedious for a homelab where DHCP leases change and nodes get reimaged regularly.
+
+The RPi Kubernetes project uses mDNS (multicast DNS) via Avahi to achieve zero-configuration node discovery. Each node announces itself as `hostname.local`, and other nodes (and your workstation) can find them without knowing their IP addresses.
+
+## How mDNS Works
+
+mDNS is a protocol that resolves hostnames to IP addresses on local networks without a central DNS server. When a device joins the network, it broadcasts its hostname and IP via multicast. Other devices listen for these broadcasts and cache the results.
+
+On Linux, this is handled by Avahi (an mDNS/DNS-SD implementation). On macOS, it's built in as Bonjour. On Windows, you need Bonjour for Windows or use the project's PowerShell discovery scripts.
+
+## Bootstrap Configuration
+
+The bootstrap script (`bootstrap/scripts/prepare-rpi.sh`) configures Avahi on each Pi:
+
+```bash
+apt-get install -y avahi-daemon avahi-utils libnss-mdns
+
+# Set a descriptive hostname
+hostnamectl set-hostname "rpi5-worker-01"
+
+# Configure Avahi
+cat > /etc/avahi/avahi-daemon.conf << 'EOF'
+[server]
+host-name=rpi5-worker-01
+domain-name=local
+use-ipv4=yes
+use-ipv6=no
+allow-interfaces=eth0
+
+[publish]
+publish-addresses=yes
+publish-hname=yes
+publish-workstation=no
+EOF
+
+systemctl enable --now avahi-daemon
+```
+
+After this, the node is reachable at `rpi5-worker-01.local` from anywhere on the local network.
+
+## Discovery Scripts
+
+The project includes discovery scripts for multiple platforms:
+
+**Python** (`bootstrap/scripts/discover_cluster.py`):
+```python
+from zeroconf import ServiceBrowser, Zeroconf
+
+class NodeListener:
+    def add_service(self, zc, type_, name):
+        info = zc.get_service_info(type_, name)
+        if info and "rpi5" in name:
+            print(f"Found: {name} at {info.parsed_addresses()[0]}")
+
+zc = Zeroconf()
+browser = ServiceBrowser(zc, "_workstation._tcp.local.", NodeListener())
+```
+
+**PowerShell** (`bootstrap/scripts/discover-nodes.ps1`):
+```powershell
+$nodes = @("rpi5-worker-01", "rpi5-worker-02", "rpi5-worker-03", "rpi5-worker-04")
+foreach ($node in $nodes) {
+    $result = Resolve-DnsName "$node.local" -Type A -ErrorAction SilentlyContinue
+    if ($result) {
+        Write-Host "Found $node at $($result.IPAddress)"
+    }
+}
+```
+
+## k3s Agent Registration
+
+When a worker node joins the cluster, it uses the control plane's mDNS hostname:
+
+```bash
+curl -sfL https://get.k3s.io | sh -s - agent \
+  --server https://control-plane.local:6443 \
+  --token $K3S_TOKEN
+```
+
+If the control plane's IP changes (DHCP renewal, network reconfiguration), the mDNS name still resolves correctly. The k3s agent recovery service (`bootstrap/scripts/k3s-agent-recovery.sh`) handles reconnection after network disruptions.
+
+## Agent Recovery
+
+Network disruptions happen. The recovery service runs as a systemd timer that checks k3s agent health and reconnects if needed:
+
+```bash
+#!/bin/bash
+if ! systemctl is-active --quiet k3s-agent; then
+    CONTROL_IP=$(avahi-resolve-host-name control-plane.local -4 | awk '{print $2}')
+    if [ -n "$CONTROL_IP" ]; then
+        systemctl restart k3s-agent
+    fi
+fi
+```
+
+This handles the common failure mode where a Pi reboots, gets a new DHCP lease, and the k3s agent can't reconnect because it cached the old control plane IP.
+
+## Cluster Config
+
+The `cluster-config.yaml` ties discovery together:
+
+```yaml
+cluster:
+  name: rpi-ml-cluster
+  discovery:
+    method: mdns
+    domain: local
+    fallback: network_scan
+    scan_range: "192.168.1.0/24"
+  control_plane:
+    hostname: control-plane
+    user: julian
+  workers:
+    - hostname: rpi5-worker-01
+    - hostname: rpi5-worker-02
+    - hostname: rpi5-worker-03
+    - hostname: rpi5-worker-04
+```
+
+The fallback to network scanning handles edge cases where mDNS isn't working (corporate networks that block multicast, for instance).
+

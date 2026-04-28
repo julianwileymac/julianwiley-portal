@@ -1,0 +1,80 @@
+---
+title: "RLHF and DPO: Aligning LLMs with Human Preferences"
+date: 2026-01-31T09:00:00+00:00
+description: "How Agentic Assistants implements reinforcement learning from human feedback using TRL, with support for DPO, PPO, ORPO, and KTO."
+tags: ["RLHF", "DPO", "Alignment", "LLM", "Reinforcement Learning"]
+categories: ["Agentic Assistants"]
+---
+
+## Beyond Supervised Fine-Tuning
+
+Supervised fine-tuning teaches a model *what* to say. Alignment teaches it *how* to say it -- following instructions precisely, avoiding harmful outputs, and matching human preferences for tone and helpfulness.
+
+Agentic Assistants implements the alignment stage through its RL subsystem (`src/agentic_assistants/rl/`), supporting multiple algorithms via the TRL (Transformer Reinforcement Learning) library.
+
+## Supported Algorithms
+
+The framework's `rl/config.py` defines configurations for five alignment methods:
+
+| Method | Description | Data Format |
+|--------|------------|-------------|
+| **DPO** | Direct Preference Optimization | Chosen/rejected pairs |
+| **PPO** | Proximal Policy Optimization | Reward model scores |
+| **RLHF** | Classic RLHF pipeline | Reward model + RL |
+| **ORPO** | Odds Ratio Preference Optimization | Chosen/rejected pairs |
+| **KTO** | Kahneman-Tversky Optimization | Binary good/bad labels |
+
+## DPO: The Practical Choice
+
+DPO has become the go-to alignment method because it eliminates the need for a separate reward model. Instead of training a reward model and then using PPO to optimize against it, DPO directly optimizes the policy using preference pairs.
+
+The data format is straightforward:
+
+```json
+{
+  "prompt": "Explain quantum computing in simple terms.",
+  "chosen": "Quantum computing uses quantum bits (qubits) that can represent...",
+  "rejected": "Quantum computing is a type of computation that harnesses..."
+}
+```
+
+The TRL adapter (`rl/adapters/trl_adapter.py`) handles the training loop:
+
+```python
+from trl import DPOConfig, DPOTrainer
+
+dpo_config = DPOConfig(
+    beta=0.1,
+    learning_rate=5e-7,
+    num_train_epochs=1,
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=4,
+)
+
+trainer = DPOTrainer(
+    model=model,
+    ref_model=ref_model,
+    args=dpo_config,
+    train_dataset=preference_data,
+    tokenizer=tokenizer,
+)
+```
+
+## The Ray Adapter
+
+For larger-scale alignment runs, the Ray adapter (`rl/adapters/ray_adapter.py`) distributes training across multiple GPUs or nodes using Ray RLlib. This is particularly useful for PPO, which is more compute-intensive than DPO due to the reward model inference step during training.
+
+## Building Preference Datasets
+
+The hardest part of alignment is creating good preference data. The framework includes utilities for:
+
+- **Pairwise comparison annotation** -- Present two completions side-by-side and record which is better
+- **Rating-based collection** -- Score completions on a 1-5 scale, then convert to pairs
+- **Synthetic generation** -- Use a stronger model to judge completions from a weaker model
+
+In practice, I've found that 2,000-5,000 high-quality preference pairs are sufficient to noticeably improve a 7B model's instruction following. The key is consistency in your preference criteria -- decide upfront what "better" means for your use case.
+
+## Combining SFT and Alignment
+
+The typical pipeline is: base model -> SFT (teach domain knowledge) -> DPO (align with preferences). The framework's training module handles this as a sequential pipeline, automatically managing checkpoint paths and model loading between stages.
+

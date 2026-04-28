@@ -1,0 +1,139 @@
+---
+title: "Running an ML Platform on ARM: MLFlow, Dask, and Ray"
+date: 2026-01-28T09:00:00+00:00
+description: "Setting up MLFlow for experiment tracking, Dask for distributed data processing, and Ray for distributed compute on a Raspberry Pi 5 cluster."
+tags: ["MLFlow", "Dask", "Ray", "ARM64", "Distributed Computing"]
+categories: ["RPi Kubernetes"]
+---
+
+## ML on Raspberry Pis?
+
+Running ML workloads on Raspberry Pis isn't about matching cloud performance -- it's about building a real distributed system that teaches you how production ML infrastructure works. The resource constraints of 8GB ARM nodes force you to think carefully about scheduling, memory management, and workload distribution.
+
+## MLFlow: Experiment Tracking
+
+MLFlow is the first service deployed to the `ml-platform` namespace. It provides experiment tracking, model registry, and artifact storage.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: ml-platform
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: mlflow
+          image: ghcr.io/mlflow/mlflow:latest
+          args:
+            - server
+            - --backend-store-uri=postgresql://mlflow:password@postgres.data-services:5432/mlflow
+            - --default-artifact-root=s3://mlflow-artifacts
+            - --host=0.0.0.0
+          env:
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: http://minio.data-services:9000
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+```
+
+MLFlow uses PostgreSQL (with pgvector) for the backend store and MinIO for artifact storage. Both run in the `data-services` namespace.
+
+## Dask: Distributed Data Processing
+
+Dask distributes pandas-like operations across the cluster. The scheduler runs on the control plane, and workers run on the Pi nodes:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dask-worker
+  namespace: ml-platform
+spec:
+  replicas: 4
+  template:
+    spec:
+      containers:
+        - name: dask-worker
+          image: ghcr.io/dask/dask:latest
+          args: ["dask-worker", "tcp://dask-scheduler:8786"]
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "2"
+            limits:
+              memory: "4Gi"
+              cpu: "3"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values: ["arm64"]
+```
+
+Each Pi runs one Dask worker with 2-4GB of RAM allocated. For a dataset that's too large for a single Pi, Dask partitions it across workers and coordinates the computation.
+
+## Ray: Distributed Compute
+
+Ray provides a more general-purpose distributed computing framework, useful for hyperparameter tuning, distributed training, and reinforcement learning. The cluster uses KubeRay for Kubernetes-native Ray cluster management:
+
+```yaml
+apiVersion: ray.io/v1alpha1
+kind: RayCluster
+metadata:
+  name: ray-cluster
+  namespace: ml-platform
+spec:
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+    template:
+      spec:
+        containers:
+          - name: ray-head
+            image: rayproject/ray:2.9.0-aarch64
+            resources:
+              limits:
+                memory: "4Gi"
+                cpu: "2"
+  workerGroupSpecs:
+    - replicas: 3
+      rayStartParams: {}
+      template:
+        spec:
+          containers:
+            - name: ray-worker
+              image: rayproject/ray:2.9.0-aarch64
+              resources:
+                limits:
+                  memory: "4Gi"
+                  cpu: "3"
+```
+
+The `aarch64` image tag is key -- standard Ray images are x86_64 only.
+
+## ARM64 Gotchas
+
+Not everything works seamlessly on ARM:
+
+- **Image availability** -- Many Docker images don't publish ARM64 variants. You'll build from source more than expected.
+- **Memory pressure** -- 8GB fills fast. Aggressive resource limits and swap configuration are essential.
+- **Compilation times** -- Building Python packages with C extensions (numpy, scipy) takes significantly longer on ARM. Use pre-built wheels where available.
+- **Mixed architecture** -- The control plane (x86_64) and workers (ARM64) need multi-arch images or separate manifests.
+
+## JupyterHub
+
+JupyterHub provides multi-user notebook access to the cluster. Users get individual pods with access to the Dask cluster and Ray for distributed computation, MLFlow for experiment logging, and the vector databases for embedding operations.
+
+The complete ML platform gives you a miniature version of what a production ML team would deploy on AWS or GCP, running entirely on hardware you own.
+

@@ -1,0 +1,96 @@
+---
+title: "MLOps with MLFlow and OpenTelemetry"
+date: 2026-02-21T09:00:00+00:00
+description: "Implementing experiment tracking, model registry, and distributed tracing for ML workloads using MLFlow and OpenTelemetry."
+tags: ["MLFlow", "OpenTelemetry", "MLOps", "Observability", "Monitoring"]
+categories: ["Agentic Assistants"]
+---
+
+## Why MLOps Matters
+
+Training a model is 10% of the work. The other 90% is tracking experiments, managing model versions, monitoring performance, and debugging failures in production. Agentic Assistants integrates MLFlow for experiment tracking and OpenTelemetry for distributed tracing.
+
+## MLFlow Integration
+
+The MLFlow tracker (`core/mlflow_tracker.py`) wraps every training run, agent execution, and pipeline invocation with automatic logging:
+
+```python
+import mlflow
+
+with mlflow.start_run(run_name="mistral-7b-qlora-v3"):
+    mlflow.log_params({
+        "base_model": "mistralai/Mistral-7B-v0.3",
+        "method": "qlora",
+        "lora_r": 16,
+        "learning_rate": 2e-4,
+    })
+
+    model = train(config)
+
+    mlflow.log_metrics({
+        "eval_loss": model.eval_loss,
+        "eval_perplexity": model.eval_perplexity,
+    })
+
+    mlflow.log_artifact("./models/checkpoint-final")
+```
+
+The framework automatically logs:
+
+- **Training runs** -- Hyperparameters, loss curves, evaluation metrics, model artifacts
+- **Agent executions** -- Input/output pairs, tool calls, execution time, token usage
+- **Pipeline runs** -- Node execution times, dataset lineage, intermediate artifacts
+
+## Model Registry
+
+MLFlow's model registry provides version control for trained models. Each model goes through a lifecycle: staging -> production -> archived. The framework's serving module reads directly from the registry, so promoting a model to production automatically makes it available for inference.
+
+## OpenTelemetry Tracing
+
+For distributed workloads (multi-agent pipelines, Kubernetes-deployed services), you need more than metrics -- you need traces. The telemetry module (`core/telemetry.py`) instruments every major operation with OpenTelemetry spans:
+
+```
+Agent Execution (root span)
+  ├── LLM Inference (Ollama)
+  │   ├── Prompt Construction
+  │   └── Model Completion
+  ├── Tool: web_search
+  │   ├── Query Planning
+  │   └── Result Processing
+  └── Memory: retrieve context
+      ├── Vector Search
+      └── Ranking
+```
+
+Traces are exported to Jaeger, where you can visualize the full execution path, identify bottlenecks, and debug failures.
+
+## Docker Compose Stack
+
+The MLOps stack runs alongside the main application:
+
+```yaml
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports: ["5000:5000"]
+    volumes:
+      - mlflow-data:/mlflow
+    environment:
+      MLFLOW_BACKEND_STORE_URI: postgresql://...
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports: ["16686:16686", "4317:4317"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./docker/otel-collector-config.yaml:/etc/otelcol/config.yaml
+```
+
+## Practical Benefits
+
+With MLFlow and OpenTelemetry running, every experiment is reproducible (you can see the exact parameters used), every failure is diagnosable (traces show where things went wrong), and model promotion is safe (you can compare staging vs production metrics before switching).
+
+The overhead is minimal -- OpenTelemetry adds single-digit milliseconds to each operation, and MLFlow logging is asynchronous.
+

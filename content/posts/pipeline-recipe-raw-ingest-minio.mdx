@@ -1,0 +1,60 @@
+---
+title: "Pipeline Recipe 1: Raw Ingest to MinIO with Argo"
+date: 2026-04-30T09:00:00+00:00
+description: "How the raw ingest workflow template in rpi_kubernetes moves source data into immutable MinIO paths for downstream processing."
+tags: ["RPi Kubernetes", "Argo Workflows", "MinIO", "Data Pipeline", "Ingestion"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why Start With Raw Ingest
+
+The most reliable data platform pattern is still:
+
+**capture raw first, transform later**.
+
+`docs/data-pipeline-recipes.md` operationalizes that via the `pipeline-raw-ingest` Argo template, which supports multiple source types and writes immutable objects to MinIO.
+
+## What The Recipe Does
+
+The workflow captures source payloads from HTTP/REST/S3/filesystem and stores them under controlled prefixes in a target bucket such as `dagster-artifacts`.
+
+Example invocation from the docs:
+
+```bash
+argo submit --from workflowtemplate/pipeline-raw-ingest -n mlops \
+  -p source_type=http \
+  -p source_uri=https://example.com/data.json \
+  -p output_prefix=raw/manual
+```
+
+## Why This Pattern Scales
+
+Raw persistence gives you:
+
+- replay capability
+- auditability
+- easier bug triage
+- clean separation between ingestion and transformation concerns
+
+On constrained clusters, that separation is even more important because retries and partial failures are common.
+
+## Hardening Priorities
+
+The docs already call out the right TODOs:
+
+- pagination by source type
+- dead-letter paths for failed pulls
+- retention policies for raw zones
+
+I would add source checksum logging as well for dedup and forensic traceability.
+
+## Practical Takeaway
+
+If your pipelines keep failing in unpredictable ways, start by making raw ingest deterministic and observable. Everything else becomes easier once the landing zone is stable.
+
+## Related Reading
+
+- [/posts/pipeline-recipe-hybrid-dagster-argo/](/posts/pipeline-recipe-hybrid-dagster-argo/)
+- [/posts/cdc-sync-watermark-strategy/](/posts/cdc-sync-watermark-strategy/)
+- [/posts/datahub-iceberg-metadata-bridge/](/posts/datahub-iceberg-metadata-bridge/)
+

@@ -1,0 +1,58 @@
+---
+title: "DataHub, Iceberg, and Metadata Bridge Jobs on a Homelab Cluster"
+date: 2026-04-26T09:00:00+00:00
+description: "How DataHub integration in rpi_kubernetes evolved with ingestion cronjobs, bridge configmaps, and Iceberg-oriented governance patterns."
+tags: ["RPi Kubernetes", "DataHub", "Iceberg", "Metadata", "Data Engineering"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why Add DataHub Here
+
+Object storage and pipelines are useful, but without metadata you eventually lose discoverability.
+
+The `rpi_kubernetes` updates added a meaningful DataHub footprint under `kubernetes/base-services/datahub/`, including:
+
+- ingestion cronjobs
+- ingestion recipe configmaps
+- metadata bridge config
+- values files for prerequisites and DataHub itself
+
+## What Changed Operationally
+
+The key progression was from static deployment to recurring ingestion behavior.
+
+Files like:
+
+- `cronjob-ingest-postgres.yaml`
+- `cronjob-ingest-minio-s3.yaml`
+- `cronjob-ingest-mlflow.yaml`
+- `cronjob-metadata-bridge.yaml`
+
+show that metadata refresh is now treated as an ongoing service, not a one-time setup task.
+
+## Why This Is A Good Pattern
+
+On small clusters, operational simplicity matters. Cron-based ingestion gives predictable behavior and easy debugging while still enabling a governance layer across storage and ML systems.
+
+It also aligns with the platform direction toward DataHub + Iceberg catalog patterns, making later lineage and discovery workflows easier.
+
+## What I Would Harden Next
+
+For production-grade behavior, I would add:
+
+1. explicit retry and dead-letter handling for ingestion jobs
+2. richer run observability tied to Prometheus/Grafana
+3. metadata freshness SLOs per source
+
+The existing manifest structure makes these additions straightforward.
+
+## Practical Takeaway
+
+If you already run MinIO, Postgres, and MLflow in-cluster, DataHub ingestion cronjobs are one of the highest leverage additions for long-term maintainability.
+
+## Related Reading
+
+- [/posts/rpi-kustomize-service-map-2026/](/posts/rpi-kustomize-service-map-2026/)
+- [/posts/pipeline-recipe-raw-ingest-minio/](/posts/pipeline-recipe-raw-ingest-minio/)
+- [/posts/vector-databases-edge/](/posts/vector-databases-edge/)
+

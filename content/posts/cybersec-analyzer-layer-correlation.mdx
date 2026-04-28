@@ -1,0 +1,58 @@
+---
+title: "Analyzer Layer Correlation in CyberSec Dashboard"
+date: 2026-05-09T09:00:00+00:00
+description: "How analyzer modules in cybersec_dashboard combine heuristic, signature, and ML-oriented signals into actionable security events."
+tags: ["CyberSec Dashboard", "Threat Detection", "Anomaly Detection", "YARA", "Threat Intel"]
+categories: ["CyberSec Dashboard"]
+---
+
+## Why The Analyzer Layer Is Central
+
+Collectors bring in raw telemetry, but analyzers create decisions.
+
+`engine/analyzers/` includes focused modules for:
+
+- traffic analysis
+- intrusion patterns
+- malware indicators
+- threat intelligence lookups
+- anomaly detection
+
+Together, these provide layered detection rather than single-technique alerts.
+
+## Layered Detection Beats Single Models
+
+In practice, this layered approach is more reliable than "AI-only" pipelines:
+
+- signatures catch known bad patterns quickly
+- threat intel enriches indicators with external context
+- anomaly models surface unknown behavior worth triage
+
+Combining these paths produces better operational alerts and reduces blind spots.
+
+## Correlation Over Noise
+
+Security tooling often drowns teams in unconnected alerts. The analyzer architecture is designed to feed correlated outputs into the core pipeline so response flows can prioritize by severity and context.
+
+This is where architecture matters more than model choice.
+
+## Practical Extensions
+
+The current module boundaries make it straightforward to add:
+
+- custom industry-specific analyzers
+- richer threat feed adapters
+- confidence scoring across analyzer outputs
+
+Those are natural next steps for teams adopting the stack.
+
+## Practical Takeaway
+
+Build analyzer layers as composable modules with clear responsibility boundaries. It keeps your detection strategy evolvable as threats and data sources change.
+
+## Related Reading
+
+- [/posts/cybersec-engine-planner-worker-design/](/posts/cybersec-engine-planner-worker-design/)
+- [/posts/traffic-tokenization-for-security-ml/](/posts/traffic-tokenization-for-security-ml/)
+- [/posts/websocket-event-bridge-fastapi-nextjs/](/posts/websocket-event-bridge-fastapi-nextjs/)
+

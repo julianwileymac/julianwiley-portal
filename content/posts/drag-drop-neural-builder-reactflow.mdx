@@ -1,0 +1,73 @@
+---
+title: "Designing a Drag-and-Drop Neural Builder with React Flow"
+date: 2026-04-17T09:00:00+00:00
+description: "A deep dive into the architecture canvas implementation in Agentic Assistants and how drag-and-drop model composition was wired in the WebUI."
+tags: ["Agentic Assistants", "React Flow", "Neural Networks", "WebUI", "TypeScript"]
+categories: ["Agentic Assistants"]
+---
+
+## Why Build This UI
+
+Many architecture design tools jump straight to code. That is efficient for experts, but it hides design mistakes until late.
+
+The WebUI in `agentic_assistants` adds a visual architecture layer system through:
+
+- `webui/src/components/model-architectures/ArchitectureCanvas.tsx`
+- `webui/src/components/model-architectures/ArchitectureNodePalette.tsx`
+- `webui/src/components/model-architectures/ArchitecturePropertiesPanel.tsx`
+
+This makes architecture design inspectable before export.
+
+## The Core Interaction Pattern
+
+The palette sends node type data via drag payload:
+
+```ts
+event.dataTransfer.setData("application/reactflow/architecture-node", nodeType);
+```
+
+The canvas receives that payload in `onDrop`, resolves a node definition, and inserts a graph node with defaults.
+
+That split keeps palette concerns and graph concerns separate, which makes future node categories easier to add.
+
+## Why React Flow Was A Good Fit
+
+`@xyflow/react` gave us the right primitives out of the box:
+
+- node/edge state transitions
+- minimap and controls
+- grid snapping
+- connection handling
+
+The important part is not visual polish. It is consistency: pipelines and model architecture tools can share interaction patterns.
+
+## Lessons From The Implementation
+
+Three details made the canvas feel stable:
+
+1. **Snap grid enabled** to prevent visual drift
+2. **Node selection state** propagated into the properties panel
+3. **Deterministic node defaults** sourced from typed definitions
+
+Without those, graph editing quickly becomes frustrating.
+
+## What I Would Add Next
+
+My next improvements would be:
+
+- multi-select edits for repeated blocks
+- subgraph templates for common transformer stacks
+- architecture diff view between revisions
+
+The current foundation supports all three.
+
+## Practical Takeaway
+
+If your toolchain includes both model experimentation and deployment workflows, a visual builder can reduce iteration cost, but only if the underlying node schema is strict and exportable.
+
+## Related Reading
+
+- [/posts/architecture-graph-api-code-export/](/posts/architecture-graph-api-code-export/)
+- [/posts/webui-package-upgrades-next-reactflow/](/posts/webui-package-upgrades-next-reactflow/)
+- [/posts/kedro-dagster-pipelines/](/posts/kedro-dagster-pipelines/)
+

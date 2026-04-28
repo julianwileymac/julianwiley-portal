@@ -1,0 +1,63 @@
+---
+title: "Nemotron Training Config Playbook"
+date: 2026-04-23T09:00:00+00:00
+description: "A practical walkthrough of the Nemotron coding assistant configuration and how to tune dataset, method, and serving settings for local training."
+tags: ["Agentic Assistants", "Nemotron", "Fine-Tuning", "QLoRA", "Configuration"]
+categories: ["Agentic Assistants"]
+---
+
+## Why The Config Is The Product
+
+`examples/nemotron-coding-assistant/config.yaml` is one of the most useful files in the repo because it captures the full lifecycle in one place:
+
+- model source
+- dataset curation
+- training method
+- evaluation targets
+- serving and logging behavior
+
+This is exactly what most local fine-tuning projects miss.
+
+## Model And Serving Defaults
+
+The Nemotron section uses:
+
+- base model: `nvidia/Llama-3.1-Nemotron-Nano-8B-v1`
+- serving preference: `vllm` with `ollama` fallback
+- conservative generation defaults for coding (low temperature, high max tokens)
+
+The fallback story is critical in local environments where GPU or service availability changes across machines.
+
+## Dataset Pipeline Decisions
+
+The datasets block combines multiple source types (`huggingface`, `local`) and quality controls:
+
+- deduplication strategy
+- min/max length
+- language filters
+- train/val/test split ratios
+
+That means data quality is treated as configuration, not hidden code behavior.
+
+## Training Method Controls
+
+The config supports SFT, LoRA, QLoRA, DPO, and full fine-tune profiles.
+
+For most local hardware, QLoRA is the practical baseline. The profile includes:
+
+- 4-bit quantization settings
+- LoRA rank/alpha/dropout
+- target module lists
+
+This keeps memory usage realistic while preserving adaptation quality.
+
+## Practical Takeaway
+
+If you want reproducible local model work, invest in a single composable config surface like this. It reduces rework, improves team handoff, and makes evaluation comparisons more trustworthy.
+
+## Related Reading
+
+- [/posts/custom-llm-training/](/posts/custom-llm-training/)
+- [/posts/nemotron-evaluation-humaneval-mbpp/](/posts/nemotron-evaluation-humaneval-mbpp/)
+- [/posts/mlops-mlflow-opentelemetry/](/posts/mlops-mlflow-opentelemetry/)
+

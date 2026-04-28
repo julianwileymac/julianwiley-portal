@@ -1,0 +1,119 @@
+---
+title: "From Docker Compose to Kubernetes: Deploying Agentic Workloads"
+date: 2026-02-24T09:00:00+00:00
+description: "The journey from local Docker Compose development to production Kubernetes deployment for the Agentic Assistants framework."
+tags: ["Docker", "Kubernetes", "DevOps", "Deployment", "Kustomize"]
+categories: ["Agentic Assistants"]
+---
+
+## Two Deployment Targets
+
+Agentic Assistants is designed to run in two modes: local development with Docker Compose, and production deployment on Kubernetes. The architecture is the same in both cases -- only the orchestration layer changes.
+
+## Docker Compose for Development
+
+The `docker-compose.yml` defines the full stack:
+
+```yaml
+services:
+  agentic-api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    ports: ["8000:8000"]
+    volumes:
+      - ./src:/app/src
+      - ./conf:/app/conf
+    environment:
+      OLLAMA_HOST: http://host.docker.internal:11434
+
+  agentic-ide:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports: ["3000:3000"]
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports: ["5000:5000"]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: agentic
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  minio:
+    image: minio/minio:latest
+    ports: ["9000:9000", "9001:9001"]
+```
+
+This gives you the complete platform with hot-reloading for development. Source volumes are mounted so code changes are reflected immediately.
+
+## Kubernetes Manifests
+
+The `k8s/` directory contains Kustomize-based manifests organized by concern:
+
+```
+k8s/
+├── namespace.yaml
+├── configmap.yaml
+├── kustomization.yaml
+├── agentic/
+│   ├── deployment.yaml
+│   └── ingress.yaml
+├── dagster/
+│   └── dagster-deployment.yaml
+├── mlflow/
+│   └── mlflow-deployment.yaml
+├── postgres/
+│   └── postgres-deployment.yaml
+├── redis/
+│   ├── redis-deployment.yaml
+│   └── redis-configmap.yaml
+└── cronjobs/
+    ├── data-sync.yaml
+    └── global-repo-ingestion.yaml
+```
+
+Each service gets its own directory with deployment, service, and any required configmaps or secrets.
+
+## Key Kubernetes Patterns
+
+**Resource limits.** Every deployment specifies CPU and memory requests/limits. This is critical for ML workloads where a training job can consume all available resources if unconstrained.
+
+**CronJobs for maintenance.** Data synchronization and repository ingestion run as Kubernetes CronJobs. The `data-sync` job runs every 6 hours to update cached datasets, and `global-repo-ingestion` re-indexes monitored repositories nightly.
+
+**ConfigMaps for configuration.** The framework's `conf/base/` directory is mounted as a ConfigMap, so configuration changes don't require image rebuilds.
+
+## Kustomize Overlays
+
+Different environments use Kustomize overlays:
+
+```yaml
+# kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: agentic-platform
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - agentic/deployment.yaml
+  - mlflow/mlflow-deployment.yaml
+  - postgres/postgres-deployment.yaml
+  - redis/redis-deployment.yaml
+  - dagster/dagster-deployment.yaml
+  - cronjobs/data-sync.yaml
+  - cronjobs/global-repo-ingestion.yaml
+```
+
+## Migration Path
+
+The migration from Docker Compose to Kubernetes is incremental. Start with the stateless services (API, workers), then migrate stateful services (Postgres, Redis, MinIO) once you have persistent volume claims configured. The framework's configuration system uses environment variables for service discovery, so the same application code works in both environments.
+

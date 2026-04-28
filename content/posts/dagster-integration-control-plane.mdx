@@ -1,0 +1,53 @@
+---
+title: "Dagster as a Control Plane Inside Agentic Assistants"
+date: 2026-04-20T09:00:00+00:00
+description: "How Dagster was integrated as an orchestration control plane across API, adapters, runners, and the WebUI in Agentic Assistants."
+tags: ["Agentic Assistants", "Dagster", "Orchestration", "MLOps", "FastAPI"]
+categories: ["Agentic Assistants"]
+---
+
+## Why Add Dagster Here
+
+Agentic Assistants already had scheduling patterns, but the system needed stronger lineage and orchestration visibility.
+
+`docs/dagster-integration.md` captures the shift clearly: Dagster is integrated alongside existing patterns, not bolted on as an isolated demo.
+
+## Integration Layers
+
+The architecture spans multiple layers:
+
+- adapter (`adapters/dagster_adapter.py`)
+- pipeline runner (`pipelines/runners/dagster.py`)
+- bridge and components (`orchestration/dagster_bridge.py`, `dagster_components.py`)
+- API router (`server/api/dagster.py`)
+- UI routes (`/dagster`, `/dagster/develop`, `/dagster/jobs`)
+
+That multi-layer approach matters because users can interact through code, API, or UI without changing orchestration semantics.
+
+## What This Enables
+
+With this integration, teams can:
+
+- define jobs and assets
+- run scheduled and event-driven workflows
+- expose run state and metrics through a standard API
+- monitor orchestration from the same control panel used for other framework workflows
+
+## Why Coexistence Beats Replacement
+
+The docs explicitly frame migration from APScheduler/Prefect paths. That is practical for real projects where complete rewrites are rarely possible.
+
+A bridge model lets teams adopt Dagster incrementally while preserving existing pipeline logic.
+
+## Practical Takeaway
+
+When adding a workflow orchestrator to an established framework, treat it as a cross-cutting control plane with clear API and UI surfaces, not only as a backend runtime.
+
+That is what turns orchestration into an everyday capability rather than a specialist-only tool.
+
+## Related Reading
+
+- [/posts/kedro-dagster-pipelines/](/posts/kedro-dagster-pipelines/)
+- [/posts/dagster-api-graphql-fallbacks/](/posts/dagster-api-graphql-fallbacks/)
+- [/posts/dagster-webui-develop-jobs-workflow/](/posts/dagster-webui-develop-jobs-workflow/)
+

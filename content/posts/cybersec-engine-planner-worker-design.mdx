@@ -1,0 +1,53 @@
+---
+title: "Inside the Planner-Worker Engine of CyberSec Dashboard"
+date: 2026-05-07T09:00:00+00:00
+description: "How the core planner-worker-pipeline architecture in cybersec_dashboard enables async security analysis across diverse telemetry streams."
+tags: ["CyberSec Dashboard", "Python", "Architecture", "Async", "Security Analytics"]
+categories: ["CyberSec Dashboard"]
+---
+
+## Why This Architecture Matters
+
+`cybersec_dashboard` is built around an async engine, not a collection of disconnected scripts.
+
+The core modules under `engine/core/` separate responsibilities:
+
+- `planner.py` for task scheduling
+- `worker.py` for execution
+- `pipeline.py` for typed analysis flow
+- `engine.py` for orchestration lifecycle
+
+This separation is what makes the system scalable and debuggable.
+
+## Typed Pipeline As Control Surface
+
+The use of explicit data types in the pipeline layer keeps collectors and analyzers composable without forcing shared assumptions into every module.
+
+In security workflows, where log, process, packet, and memory data differ drastically, typed routing is a practical necessity.
+
+## Why Async Is A Good Fit
+
+Telemetry workloads are bursty and I/O heavy. Async worker coordination helps handle variable arrival rates and prevents one slow path from blocking unrelated analysis paths.
+
+It also makes real-time UI updates feasible through event streaming.
+
+## Operational Benefits
+
+This architecture gives clean extension points:
+
+- add collector without touching analyzer internals
+- add analyzer without changing ingest paths
+- add storage/export features without reworking planner logic
+
+That keeps feature velocity high even in a broad-scope security project.
+
+## Practical Takeaway
+
+If you are building multi-source security analytics, invest in planner-worker boundaries early. They are much harder to retrofit once modules become tightly coupled.
+
+## Related Reading
+
+- [/posts/cybersec-collector-layer-practical-guide/](/posts/cybersec-collector-layer-practical-guide/)
+- [/posts/cybersec-analyzer-layer-correlation/](/posts/cybersec-analyzer-layer-correlation/)
+- [/posts/websocket-event-bridge-fastapi-nextjs/](/posts/websocket-event-bridge-fastapi-nextjs/)
+

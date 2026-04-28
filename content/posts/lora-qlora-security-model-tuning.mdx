@@ -1,0 +1,54 @@
+---
+title: "LoRA and QLoRA for Security Model Tuning"
+date: 2026-05-12T09:00:00+00:00
+description: "How cybersec_dashboard frames parameter-efficient training for security workloads and where LoRA or QLoRA fit in resource-constrained environments."
+tags: ["CyberSec Dashboard", "LoRA", "QLoRA", "Fine-Tuning", "Transformers"]
+categories: ["CyberSec Dashboard"]
+---
+
+## Why Parameter-Efficient Training Matters
+
+Security teams rarely get unlimited GPU resources. `cybersec_dashboard/engine/ml/training.py` includes scaffolding for LoRA and QLoRA methods, which is the practical way to adapt models under hardware constraints.
+
+## The Value Of Method Choice
+
+LoRA and QLoRA are not interchangeable defaults. The choice depends on:
+
+- available VRAM
+- training speed requirements
+- target model size
+- acceptable quality tradeoffs
+
+QLoRA is often the best first pass for homelab or small-team setups where full fine-tunes are not realistic.
+
+## Why This Fits The Project
+
+The broader architecture already supports:
+
+- structured telemetry ingestion
+- analyzer-driven labeling context
+- model manager and inference runtime
+
+Adding parameter-efficient tuning on top of this stack is a natural extension, not a disconnected experiment.
+
+## Practical Guidance
+
+I recommend this path:
+
+1. baseline with pre-trained model behavior
+2. run LoRA/QLoRA on curated domain slices
+3. evaluate against task-specific security benchmarks
+4. promote only when quality and latency both improve
+
+Without this loop, tuning often optimizes the wrong objective.
+
+## Practical Takeaway
+
+Parameter-efficient fine-tuning is a strong fit for security analytics systems, but only if data curation and evaluation are treated as first-class parts of the training cycle.
+
+## Related Reading
+
+- [/posts/traffic-tokenization-for-security-ml/](/posts/traffic-tokenization-for-security-ml/)
+- [/posts/nemotron-training-config-playbook/](/posts/nemotron-training-config-playbook/)
+- [/posts/nemotron-evaluation-humaneval-mbpp/](/posts/nemotron-evaluation-humaneval-mbpp/)
+

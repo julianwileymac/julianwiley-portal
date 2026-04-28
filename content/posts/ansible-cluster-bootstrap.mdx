@@ -1,0 +1,142 @@
+---
+title: "Cross-Platform Cluster Bootstrap with Ansible and PowerShell"
+date: 2026-02-26T09:00:00+00:00
+description: "Automating Raspberry Pi cluster provisioning with Ansible playbooks, shell scripts, and PowerShell -- bridging Linux nodes and Windows workstations."
+tags: ["Ansible", "PowerShell", "Automation", "DevOps", "Infrastructure"]
+categories: ["RPi Kubernetes"]
+---
+
+## The Bootstrap Problem
+
+Setting up a Kubernetes cluster on bare Raspberry Pis involves dozens of steps per node: configuring swap, enabling cgroups, installing packages, setting up networking, mounting storage, installing k3s, and joining the cluster. Doing this manually for 4+ nodes is error-prone and time-consuming.
+
+The RPi Kubernetes project provides three automation paths: Ansible playbooks (Linux/macOS), PowerShell scripts (Windows), and raw shell scripts (universal fallback).
+
+## Ansible Playbooks
+
+The Ansible approach (`ansible/`) is the most maintainable for ongoing cluster management.
+
+**Inventory** (`ansible/inventory/cluster.yml`):
+```yaml
+all:
+  children:
+    control_plane:
+      hosts:
+        control-plane.local:
+          ansible_user: julian
+          k3s_role: server
+    workers:
+      hosts:
+        rpi5-worker-01.local:
+          ansible_user: pi
+          k3s_role: agent
+        rpi5-worker-02.local:
+          ansible_user: pi
+          k3s_role: agent
+        rpi5-worker-03.local:
+          ansible_user: pi
+          k3s_role: agent
+        rpi5-worker-04.local:
+          ansible_user: pi
+          k3s_role: agent
+```
+
+Note the `.local` hostnames -- Ansible uses mDNS for host resolution, no IP addresses needed.
+
+**Bootstrap playbook** (`ansible/playbooks/bootstrap.yml`):
+```yaml
+- name: Bootstrap cluster nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Configure swap
+      ansible.builtin.shell: |
+        dphys-swapfile swapoff
+        echo "CONF_SWAPSIZE=2048" > /etc/dphys-swapfile
+        dphys-swapfile setup
+        dphys-swapfile swapon
+
+    - name: Enable cgroups for k3s
+      ansible.builtin.lineinfile:
+        path: /boot/firmware/cmdline.txt
+        regexp: '^((?!cgroup).*)$'
+        line: '\1 cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory'
+        backrefs: true
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - avahi-daemon
+          - avahi-utils
+          - libnss-mdns
+          - nfs-common
+          - open-iscsi
+        state: present
+        update_cache: true
+```
+
+**k3s installation** (`ansible/playbooks/k3s-install.yml`) handles server and agent installation with role-based conditionals, MetalLB configuration, and ingress-nginx setup.
+
+**Storage setup** (`ansible/playbooks/storage-setup.yml`) mounts external USB SSDs and configures the local-path-provisioner for Kubernetes persistent volumes.
+
+## PowerShell for Windows Users
+
+Many homelab users run Windows as their primary OS. The PowerShell scripts (`bootstrap/scripts/*.ps1`) provide the same functionality:
+
+```powershell
+# bootstrap-cluster.ps1
+param(
+    [string]$ConfigPath = "../../cluster-config.yaml"
+)
+
+$config = Get-Content $ConfigPath | ConvertFrom-Yaml
+
+foreach ($worker in $config.cluster.workers) {
+    $hostname = "$($worker.hostname).local"
+    Write-Host "Bootstrapping $hostname..."
+
+    # Copy prep script to Pi
+    scp ./prepare-rpi.sh "${config.cluster.workers_user}@${hostname}:/tmp/"
+
+    # Execute remotely
+    ssh "${config.cluster.workers_user}@${hostname}" "chmod +x /tmp/prepare-rpi.sh && sudo /tmp/prepare-rpi.sh"
+}
+```
+
+The PowerShell scripts handle SSH key distribution, script deployment, remote execution, and cluster verification from a Windows terminal.
+
+## Shell Scripts: The Foundation
+
+Both Ansible and PowerShell ultimately execute shell scripts on the target nodes:
+
+- `prepare-rpi.sh` -- Full node preparation (swap, cgroups, Avahi, storage, firewall)
+- `prepare-ubuntu.sh` -- Control plane specific setup (GPU drivers, MetalLB)
+- `mount-external-drive.sh` -- USB SSD mount and fstab configuration
+- `k3s-health-check.sh` -- Health check for systemd watchdog
+- `k3s-agent-recovery.sh` -- Automatic reconnection after network disruptions
+
+## Diagnostic Tools
+
+When things go wrong (and they will), the project includes diagnostic scripts:
+
+```powershell
+# diagnose-cluster.ps1
+kubectl get nodes -o wide
+kubectl get pods -A --field-selector status.phase!=Running
+kubectl top nodes
+kubectl top pods -A --sort-by=memory
+```
+
+And specialized diagnostics for common failure modes: Milvus connectivity issues (`diagnose-milvus.ps1`), Grafana port conflicts (`fix-grafana.ps1`), and general pod debugging (`debug-pods.ps1`).
+
+## The Full Bootstrap Flow
+
+1. Flash SD cards with Raspberry Pi Imager (set hostname, enable SSH)
+2. Connect Pis to the PoE switch
+3. Run `discover-nodes.ps1` to verify all nodes are reachable
+4. Run `bootstrap-cluster.ps1` or `ansible-playbook bootstrap.yml`
+5. Run `k3s-install.yml` to install k3s server and agents
+6. Deploy services: `kubectl apply -k kubernetes/`
+
+From bare hardware to a running ML platform in about 30 minutes of automated work.
+

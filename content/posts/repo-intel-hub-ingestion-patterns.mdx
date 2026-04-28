@@ -1,0 +1,68 @@
+---
+title: "Repo Intel Hub: Turning Source Repositories into a Retrieval Dataset"
+date: 2026-04-12T09:00:00+00:00
+description: "How the Repo Intel Hub starter operationalizes repository ingestion for local retrieval workflows with repeatable config and scheduling patterns."
+tags: ["Agentic Assistants", "RAG", "Code Search", "Ingestion", "Starters"]
+categories: ["Agentic Assistants"]
+---
+
+## Why Repository Ingestion Is Different
+
+Most RAG tutorials assume PDFs and markdown pages. Code repositories are harder:
+
+- high churn
+- many file types
+- mixed signal quality
+- architecture context spread across folders
+
+The `examples/starters/repo-intel-hub/` starter addresses this by separating source definitions (`repos.yaml`), runtime configuration (`config.yaml`), and execution (`run.py`).
+
+## The Important Shift
+
+The key design is to model repositories as ingestable sources, not as one-off scripts. That lets ingestion run repeatedly with the same policy and makes updates predictable.
+
+In practice, this means:
+
+- defining which repos are in scope
+- defining chunking and embedding behavior once
+- re-running ingestion as a repeatable operation
+
+## Operational Pattern
+
+A useful pattern from this starter is "index-first, then answer." Instead of hitting git and embedding pipelines at query time, ingestion builds a stable retrieval corpus before user interaction.
+
+That gives better tail latency and fewer live-request failures.
+
+## Configuration Matters More Than Code
+
+The shape of `repos.yaml` and `config.yaml` is the long-term asset. A lot of teams can write a crawler; fewer teams can keep ingestion policies maintainable over months.
+
+I recommend capturing at minimum:
+
+- include/exclude path rules
+- branch and refresh policy
+- metadata fields to preserve for traceability
+
+## What I Would Add In Production
+
+For production hardening, I would add:
+
+1. incremental diffs based on commit watermark
+2. re-embedding policy by model version
+3. failure buckets for problematic files
+4. ingestion run logs tied to source revision
+
+These are natural next steps after the starter, and they align with the broader pipeline philosophy in the framework.
+
+## Practical Takeaway
+
+If your assistant answers questions about code, treat repo ingestion as a data pipeline with explicit policy, not as convenience glue around `git clone`.
+
+The `repo-intel-hub` starter is a strong baseline because it gives structure to that policy from day one.
+
+## Related Reading
+
+- [/posts/local-rag-coding-assistant/](/posts/local-rag-coding-assistant/)
+- [/posts/examples-library-design-system/](/posts/examples-library-design-system/)
+- [/posts/mlops-mlflow-opentelemetry/](/posts/mlops-mlflow-opentelemetry/)
+

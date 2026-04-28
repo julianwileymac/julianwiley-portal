@@ -1,0 +1,134 @@
+---
+title: "Model Serving on the Edge with BentoML and Yatai"
+date: 2026-03-05T09:00:00+00:00
+description: "Deploying ML models as production-ready API endpoints on a Raspberry Pi cluster using BentoML for packaging and Yatai for lifecycle management."
+tags: ["BentoML", "Yatai", "Model Serving", "MLOps", "Edge Computing"]
+categories: ["RPi Kubernetes"]
+---
+
+## The Model Serving Gap
+
+Training a model is one milestone. Serving it reliably as an API endpoint is another. The RPi Kubernetes project uses BentoML to package models as containerized services and Yatai to manage the lifecycle of those services on the cluster.
+
+## BentoML: Model Packaging
+
+BentoML wraps trained models into "Bentos" -- self-contained archives that include the model weights, inference code, dependencies, and a REST/gRPC API definition.
+
+```python
+import bentoml
+from bentoml.io import JSON, NumpyNdarray
+
+model_ref = bentoml.sklearn.get("anomaly_detector:latest")
+
+runner = model_ref.to_runner()
+
+svc = bentoml.Service("anomaly_detector_service", runners=[runner])
+
+@svc.api(input=NumpyNdarray(), output=JSON())
+async def predict(input_data):
+    result = await runner.predict.async_run(input_data)
+    return {
+        "predictions": result.tolist(),
+        "model_version": model_ref.tag.version,
+    }
+```
+
+The Bento is built with:
+```bash
+bentoml build
+bentoml containerize anomaly_detector_service:latest --platform linux/arm64
+```
+
+The `--platform linux/arm64` flag ensures the container image works on the Pi nodes.
+
+## Yatai: Lifecycle Management
+
+Yatai is BentoML's Kubernetes-native deployment platform. It provides:
+
+- **Model registry** -- Version control for Bentos with metadata and lineage
+- **Deployment management** -- Rolling updates, canary deployments, auto-scaling
+- **Monitoring** -- Request metrics, latency percentiles, error rates
+- **Integration** -- MLFlow model import, Kubernetes-native scheduling
+
+Yatai is deployed via Helm in the `mlops` namespace:
+
+```bash
+helm install yatai yatai/yatai \
+  --namespace mlops \
+  --values kubernetes/mlops/bentoml/values.yaml
+```
+
+## MLFlow to BentoML Pipeline
+
+The typical workflow integrates with the existing ML platform:
+
+1. **Train** -- Train a model using the ML platform (MLFlow logs the run)
+2. **Register** -- MLFlow model registry tracks the version
+3. **Package** -- BentoML imports the model from MLFlow and builds a Bento
+4. **Deploy** -- Yatai deploys the Bento to the cluster
+
+```python
+import mlflow
+import bentoml
+
+mlflow_model_uri = "models:/anomaly_detector/Production"
+model = mlflow.sklearn.load_model(mlflow_model_uri)
+
+bentoml.sklearn.save_model(
+    "anomaly_detector",
+    model,
+    metadata={"mlflow_run_id": run_id},
+)
+```
+
+## ARM64 Considerations
+
+Model serving on ARM64 has specific constraints:
+
+- **Framework support** -- scikit-learn, XGBoost, and LightGBM work well on ARM. PyTorch works but without CUDA (no GPU on Pis). TensorFlow Lite is preferred over full TensorFlow for inference.
+- **Quantization** -- Models quantized to INT8 run significantly faster on ARM's NEON SIMD instructions. BentoML supports serving quantized models transparently.
+- **Memory limits** -- A single Pi can realistically serve 2-3 small models (each under 500MB). Larger models should run on the control plane.
+
+## Argo Workflows Integration
+
+For automated retraining and deployment, Argo Workflows orchestrates the full pipeline:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: retrain-and-deploy
+spec:
+  templates:
+    - name: train
+      container:
+        image: ml-training:latest
+        command: [python, train.py]
+
+    - name: evaluate
+      container:
+        image: ml-training:latest
+        command: [python, evaluate.py]
+
+    - name: deploy
+      container:
+        image: bentoml/bentoml:latest
+        command: [bentoml, deploy, anomaly_detector_service]
+```
+
+The workflow runs on a schedule or is triggered by data drift detection, ensuring models stay current without manual intervention.
+
+## Performance
+
+On a Pi5 (8GB), a scikit-learn random forest serving predictions via BentoML achieves:
+
+| Metric | Value |
+|--------|-------|
+| Latency (p50) | 8ms |
+| Latency (p99) | 25ms |
+| Throughput | ~200 req/s |
+| Memory usage | 180MB |
+| Cold start | 3s |
+
+For edge inference where latency requirements are in the tens of milliseconds rather than single digits, this is more than adequate. The cluster's 4 Pi nodes can collectively handle 800+ requests per second for lightweight models.
+

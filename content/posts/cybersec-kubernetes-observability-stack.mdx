@@ -1,0 +1,56 @@
+---
+title: "Deploying CyberSec Dashboard with Kubernetes and Observability"
+date: 2026-05-14T09:00:00+00:00
+description: "How cybersec_dashboard packages API and UI deployment with Kubernetes manifests, ServiceMonitor integration, and OTEL/Loki-ready telemetry."
+tags: ["CyberSec Dashboard", "Kubernetes", "Prometheus", "OpenTelemetry", "Deployment"]
+categories: ["CyberSec Dashboard"]
+---
+
+## Why This Deployment Story Is Useful
+
+`cybersec_dashboard` is not only a local script set. It now includes a full deployment scaffold:
+
+- Dockerfiles for API and UI (`deploy/docker/`)
+- compose stack (`deploy/compose/docker-compose.yaml`)
+- Kubernetes base manifests (`deploy/kubernetes/base/`)
+
+That gives a realistic path from local development to clustered operation.
+
+## Observability Is Built In
+
+The stack exposes and documents:
+
+- Prometheus scrape target (`/metrics`)
+- OTLP tracing configuration
+- optional Loki export path
+- ServiceMonitor manifest in Kubernetes base
+
+This aligns nicely with the broader observability direction used in `rpi_kubernetes`.
+
+## Why This Matters Operationally
+
+Security analytics systems degrade quickly without visibility. A deployment model that includes metrics and trace plumbing from day one is much easier to support than retrofitting telemetry later.
+
+The README also includes practical env controls for cache, inference, and exporter endpoints, which makes tuning safer in real environments.
+
+## Practical Rollout Path
+
+A reliable rollout pattern here is:
+
+1. local compose smoke tests
+2. Kubernetes base apply in isolated namespace
+3. Prometheus target and WebSocket health checks
+4. dashboard-level validation with live event flow
+
+That sequence catches most integration issues early.
+
+## Practical Takeaway
+
+If you are shipping a security dashboard with ML components, include deployment and observability as first-class project features. It is the difference between a demo and an operable system.
+
+## Related Reading
+
+- [/posts/docker-to-kubernetes-deployment/](/posts/docker-to-kubernetes-deployment/)
+- [/posts/observability-stack-k8s/](/posts/observability-stack-k8s/)
+- [/posts/websocket-event-bridge-fastapi-nextjs/](/posts/websocket-event-bridge-fastapi-nextjs/)
+

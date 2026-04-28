@@ -1,0 +1,60 @@
+---
+title: "From Graph to Model Class: Architecture API and Code Export"
+date: 2026-04-18T09:00:00+00:00
+description: "How the architecture API in Agentic Assistants stores graph definitions and exports runnable PyTorch or TensorFlow model skeletons."
+tags: ["Agentic Assistants", "FastAPI", "PyTorch", "TensorFlow", "Code Generation"]
+categories: ["Agentic Assistants"]
+---
+
+## The Real Goal Of A Visual Builder
+
+A canvas is useful only if it can become executable code.
+
+`src/agentic_assistants/server/api/architectures.py` closes that loop by exposing CRUD endpoints for architecture graphs and export endpoints that generate framework-specific skeletons.
+
+## API Surface
+
+The architecture router supports:
+
+- create/list/get/update/delete for saved graphs
+- export by architecture id
+- export for unsaved graph payloads
+
+Storage is intentionally simple (`./data/architectures/*.json`) so teams can inspect and version results without a heavy service dependency.
+
+## Export Strategy
+
+The export flow does three important things:
+
+1. topologically sorts graph nodes
+2. maps node types to layer declarations
+3. emits forward/call pass code in framework syntax
+
+Supported output targets are `pytorch` and `tensorflow`, with generated class names controlled by request parameters.
+
+## Why Topological Ordering Matters
+
+Graph UIs allow arbitrary positioning. Execution code does not. The topological sort in the API stabilizes generation order and avoids accidental dependence on UI layout position.
+
+When cycles are present, the exporter falls back to deterministic insertion order with a comment path for unsupported or ambiguous nodes.
+
+## Practical Value
+
+For day-to-day iteration, this gives me:
+
+- quick sharing of architecture JSON between teammates
+- immediate code skeleton generation for review
+- lower barrier to converting visual drafts into training-ready modules
+
+It is not intended to replace full training pipelines, but it removes repetitive scaffolding work.
+
+## Practical Takeaway
+
+If you add visual model composition, design export as a first-class API from day one. Otherwise visual artifacts become dead-end diagrams instead of productive engineering assets.
+
+## Related Reading
+
+- [/posts/drag-drop-neural-builder-reactflow/](/posts/drag-drop-neural-builder-reactflow/)
+- [/posts/custom-llm-training/](/posts/custom-llm-training/)
+- [/posts/nemotron-training-workflow-local/](/posts/nemotron-training-workflow-local/)
+

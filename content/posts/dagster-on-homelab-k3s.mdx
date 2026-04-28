@@ -1,0 +1,49 @@
+---
+title: "Running Dagster on a Homelab k3s Cluster"
+date: 2026-04-28T09:00:00+00:00
+description: "A practical deployment story for Dagster in rpi_kubernetes using Helm values, secrets, user-code images, and OTEL hooks."
+tags: ["RPi Kubernetes", "Dagster", "k3s", "MLOps", "Orchestration"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why Dagster Here
+
+In `rpi_kubernetes`, Dagster fills the orchestration gap between ad-hoc scripts and heavyweight production stacks. The deployment under `kubernetes/mlops/dagster/` includes:
+
+- primary values file
+- user-code values override
+- bootstrap configmap
+- secret manifest
+
+This gives a complete control-plane setup instead of a partial install.
+
+## What Makes This Deployment Useful
+
+The docs (`docs/mlops-workflows.md`) tie Dagster into existing platform services:
+
+- PostgreSQL for metadata
+- MinIO for compute logs/artifacts
+- OpenTelemetry Collector for telemetry export
+
+This integration is what makes Dagster operationally valuable, not just runnable.
+
+## User Code As A First-Class Concern
+
+A standout detail is explicit handling of pipelines user-code packaging (`values-pipelines-user-code.yaml` plus related bootstrap config). That makes the "Dagster in cluster" experience much closer to real team usage.
+
+## Why This Matters On Small Clusters
+
+Homelab clusters have less tolerance for opaque orchestration behavior. Keeping Dagster configuration explicit and versioned inside repo manifests improves maintainability and recoverability.
+
+It also keeps orchestration reproducible across rebuilds, which is essential when hardware is frequently repurposed.
+
+## Practical Takeaway
+
+If you deploy Dagster on k3s, integrate it with your existing storage and telemetry layers from day one. A disconnected Dagster install is easy; a useful one requires system-level wiring.
+
+## Related Reading
+
+- [/posts/dagster-integration-control-plane/](/posts/dagster-integration-control-plane/)
+- [/posts/argo-events-crd-discovery-lessons/](/posts/argo-events-crd-discovery-lessons/)
+- [/posts/observability-stack-k8s/](/posts/observability-stack-k8s/)
+

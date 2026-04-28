@@ -1,0 +1,50 @@
+---
+title: "Batched Inference and Cache Patterns for Security Telemetry"
+date: 2026-05-11T09:00:00+00:00
+description: "How the inference pipeline in cybersec_dashboard balances throughput and responsiveness with batching and TTL cache controls."
+tags: ["CyberSec Dashboard", "Inference", "Caching", "Performance", "ML Ops"]
+categories: ["CyberSec Dashboard"]
+---
+
+## The Throughput vs Latency Tradeoff
+
+Security systems need timely answers, but single-item inference can waste resources.
+
+`engine/ml/inference.py` and runtime settings in the project define a batched async inference path with configurable cache controls. This is the right direction for live-ish telemetry.
+
+## Why Batching Helps
+
+Batching improves device utilization and reduces per-request overhead. In this stack, that means more stable throughput under bursty traffic without immediately scaling hardware.
+
+The key is to keep batch size tunable at runtime, which the project supports through settings and environment configuration.
+
+## Why TTL Cache Helps
+
+The engine also exposes inference cache controls, which reduce redundant recomputation for repeated or similar analysis paths.
+
+Cache TTLs and capacities are explicit runtime knobs, allowing operators to tune for:
+
+- lower latency
+- lower compute cost
+- acceptable staleness windows
+
+## Where Teams Get Burned
+
+Caching is not free. In security contexts, stale results can hide fast-changing threat states.
+
+The right approach is to pair cache strategy with:
+
+- clear TTL policies
+- metadata tags for cache provenance
+- observability on cache hit/miss behavior
+
+## Practical Takeaway
+
+Batched inference plus controlled caching is a strong baseline for security ML pipelines, but only when staleness risk is explicit and monitored.
+
+## Related Reading
+
+- [/posts/traffic-tokenization-for-security-ml/](/posts/traffic-tokenization-for-security-ml/)
+- [/posts/cybersec-kubernetes-observability-stack/](/posts/cybersec-kubernetes-observability-stack/)
+- [/posts/mlops-mlflow-opentelemetry/](/posts/mlops-mlflow-opentelemetry/)
+

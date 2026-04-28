@@ -1,0 +1,58 @@
+---
+title: "Architecture Node Types, Defaults, and Validation Warnings"
+date: 2026-04-19T09:00:00+00:00
+description: "How typed node definitions and property panel warnings keep visual model design safer in the Agentic Assistants architecture builder."
+tags: ["Agentic Assistants", "TypeScript", "Validation", "Neural Networks", "UX"]
+categories: ["Agentic Assistants"]
+---
+
+## Visual Tools Need Guardrails
+
+Drag-and-drop UIs can hide invalid configurations. The architecture tooling in Agentic Assistants avoids that by centralizing node schema in `webui/src/components/model-architectures/types.ts`.
+
+Each node definition includes:
+
+- `type`
+- `label`
+- `category`
+- `description`
+- `defaults`
+
+That gives both the canvas and properties panel a single source of truth.
+
+## Node Schema As Product Contract
+
+The current node types span IO, transformer blocks, and core layers:
+
+- `input`, `output`
+- `embedding`, `positional_encoding`, `mha`, `ffn`, `residual_norm`
+- `linear`, `conv1d`, `dropout`, `activation`
+
+Because defaults are explicit, newly dropped nodes are immediately usable and predictable.
+
+## Property Editing Design
+
+`ArchitecturePropertiesPanel.tsx` handles configuration updates by key while preserving node-level metadata. It also adapts field type by default value:
+
+- numeric defaults render number inputs
+- structured defaults render JSON text areas
+- selected enums (activation, positional mode) render dropdowns
+
+This keeps editing fast without losing flexibility.
+
+## Warning Surfaces
+
+The panel supports a warning list and each node supports a warning field. That matters because validation should appear where users are already editing, not in a separate diagnostics page.
+
+Even simple warning surfaces improve architecture quality when teams iterate quickly.
+
+## Practical Takeaway
+
+If you build a visual model editor, make schema and defaults explicit first, then add interactions. Strong typing in the node catalog is what makes export and validation reliable later.
+
+## Related Reading
+
+- [/posts/drag-drop-neural-builder-reactflow/](/posts/drag-drop-neural-builder-reactflow/)
+- [/posts/architecture-graph-api-code-export/](/posts/architecture-graph-api-code-export/)
+- [/posts/webui-package-upgrades-next-reactflow/](/posts/webui-package-upgrades-next-reactflow/)
+

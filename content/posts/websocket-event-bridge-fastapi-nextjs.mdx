@@ -1,0 +1,56 @@
+---
+title: "Real-Time Event Bridge: FastAPI to Next.js via WebSockets"
+date: 2026-05-13T09:00:00+00:00
+description: "How cybersec_dashboard uses a WebSocket event bridge to stream runtime status from the async engine to the Next.js operations dashboard."
+tags: ["CyberSec Dashboard", "WebSockets", "FastAPI", "Next.js", "Realtime"]
+categories: ["CyberSec Dashboard"]
+---
+
+## Why Real-Time Matters Here
+
+Security operations dashboards are less useful when they are stale.
+
+`cybersec_dashboard` addresses this with a runtime event bridge through:
+
+- `engine/api/server.py`
+- `engine/api/websocket.py`
+- UI hooks under `ui/src/hooks/`
+
+This allows engine state and alert flow to stream into the frontend without aggressive polling loops.
+
+## Architecture Pattern
+
+The backend normalizes internal events, then fan-outs them through `/ws/events`. The frontend subscribes and updates focused views like network, threats, memory, and logs.
+
+This keeps transport concerns separate from page-specific rendering logic.
+
+## Why This Is Better Than Polling Everything
+
+Polling is easy at first, but expensive under sustained activity. Event streaming:
+
+- reduces redundant API calls
+- lowers perceived latency
+- keeps UI closer to system reality
+
+It also aligns naturally with the async planner-worker architecture.
+
+## Operational Caveats
+
+WebSocket systems need explicit handling for:
+
+- reconnect strategy
+- buffer management
+- backpressure under burst conditions
+
+The project's split hook design (`useWebSocket`, event buffering hooks, engine hooks) is a solid foundation for this.
+
+## Practical Takeaway
+
+If your backend is already event-oriented, expose that model directly to the UI with a typed WebSocket bridge. It simplifies both frontend state and operator experience.
+
+## Related Reading
+
+- [/posts/cybersec-engine-planner-worker-design/](/posts/cybersec-engine-planner-worker-design/)
+- [/posts/cybersec-collector-layer-practical-guide/](/posts/cybersec-collector-layer-practical-guide/)
+- [/posts/management-control-panel-rbac-otel/](/posts/management-control-panel-rbac-otel/)
+

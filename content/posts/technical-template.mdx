@@ -1,0 +1,104 @@
+---
+title: "Technical Deep-Dive: [Topic Name]"
+date: 2026-02-14T12:00:00+00:00
+draft: true
+description: "A detailed technical walkthrough of [topic]. Replace this with your actual description."
+tags: ["Machine Learning", "Python"]
+categories: ["Technical"]
+---
+
+<!-- ============================================================
+  TEMPLATE: Technical Deep-Dive Post
+  
+  This is a starter template for technical blog posts. Duplicate
+  this folder, rename it, and customize the content below.
+  
+  Remove `draft: true` from the frontmatter when ready to publish.
+  ============================================================ -->
+
+## Problem Statement
+
+<!-- Describe the problem you're solving. What motivated this work? Why does it matter? -->
+
+In this post, I'll walk through [brief description of what you'll cover]. This is relevant because [explain why readers should care].
+
+## Background
+
+<!-- Provide context the reader needs. Link to papers, docs, or prior posts if applicable. -->
+
+Before diving in, here's a quick overview of the key concepts:
+
+- **Concept A** -- Brief explanation
+- **Concept B** -- Brief explanation
+
+## Approach
+
+<!-- Describe your methodology. What tools, libraries, and techniques did you use? -->
+
+### Tools and Libraries
+
+<!-- Use the tech-stack shortcode to display your stack -->
+
+
+<UnportedShortcode source={"
+<UnportedShortcode source={"{{< tech-stack items=\\\"Python,Pandas,scikit-learn,NumPy\\\" >}}"} />
+"} />
+
+<UnportedShortcode source={"{{< /tech-stack >}}"} />
+
+
+### Methodology
+
+<!-- Walk through your approach step by step. Include code samples. -->
+
+The first step was data preprocessing:
+
+```python
+import pandas as pd
+import numpy as np
+
+# Load and clean the dataset
+df = pd.read_csv("data/raw_data.csv")
+df = df.dropna(subset=["target"])
+df["date"] = pd.to_datetime(df["date"])
+```
+
+Next, feature engineering:
+
+```python
+# Create lagged features
+for lag in [1, 5, 10, 20]:
+    df[f"return_lag_{lag}"] = df["returns"].shift(lag)
+```
+
+## Results
+
+<!-- Present your findings with code, tables, or visualizations. -->
+
+| Metric    | Baseline | Our Model |
+|-----------|----------|-----------|
+| Accuracy  | 0.52     | 0.73      |
+| Precision | 0.48     | 0.71      |
+| Recall    | 0.50     | 0.68      |
+
+## Key Takeaways
+
+<!-- Summarize the most important findings. -->
+
+1. **Finding 1** -- Explanation
+2. **Finding 2** -- Explanation
+3. **Finding 3** -- Explanation
+
+## What's Next
+
+<!-- Describe future work or related topics you plan to explore. -->
+
+In a follow-up post, I'll explore [next topic]. If you have questions or suggestions, leave a comment below.
+
+## References
+
+<!-- Link to papers, documentation, or related resources. -->
+
+- [Resource 1](https://example.com)
+- [Resource 2](https://example.com)
+

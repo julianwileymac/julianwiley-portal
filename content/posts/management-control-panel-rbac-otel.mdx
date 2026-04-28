@@ -1,0 +1,46 @@
+---
+title: "Management Control Panel: RBAC, API Surface, and Telemetry"
+date: 2026-05-06T09:00:00+00:00
+description: "How the management backend and frontend in rpi_kubernetes evolved into an operational control plane with explicit RBAC and observability wiring."
+tags: ["RPi Kubernetes", "FastAPI", "Next.js", "RBAC", "OpenTelemetry"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why A Custom Control Panel
+
+Generic dashboards are useful, but they rarely reflect project-specific operational questions.
+
+`rpi_kubernetes` expanded the management layer with:
+
+- backend deployment and RBAC in `kubernetes/base-services/management/backend.yaml`
+- frontend deployment in `kubernetes/base-services/management/frontend.yaml`
+- build and verification scripts (`build-management.sh`, `verify-control-panel.sh`)
+
+This turns the panel into a first-class platform service.
+
+## RBAC Is The Core Story
+
+The backend manifest defines explicit cluster permissions for querying resources needed by the panel. That is a better pattern than running broad admin credentials or ad-hoc kubeconfig hacks.
+
+Least privilege is not just security theater here; it also clarifies which panel features are intentionally supported.
+
+## Telemetry Wiring Matters
+
+The management service is wired into the observability stack through OTEL-oriented config and shared platform telemetry. That creates consistent traceability across orchestration, services, and UI operations.
+
+On a multi-service cluster, this is critical for debugging cross-layer failures.
+
+## Build Path Improvements
+
+Scripted image build/update paths reduced drift between source and deployed control panel. This sounds basic, but for homelab clusters it is often the difference between "works once" and "works repeatedly."
+
+## Practical Takeaway
+
+If your cluster has more than a handful of services, a custom management panel pays off when it is deployed with clear RBAC boundaries and telemetry hooks, not just as a convenience UI.
+
+## Related Reading
+
+- [/posts/cluster-management-dashboard/](/posts/cluster-management-dashboard/)
+- [/posts/docker-to-kubernetes-deployment/](/posts/docker-to-kubernetes-deployment/)
+- [/posts/rpi-kustomize-service-map-2026/](/posts/rpi-kustomize-service-map-2026/)
+

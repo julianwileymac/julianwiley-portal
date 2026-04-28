@@ -1,0 +1,144 @@
+---
+title: "Observability on Kubernetes: OpenTelemetry, Jaeger, and Loki"
+date: 2026-02-12T09:00:00+00:00
+description: "Building a full observability stack on a Raspberry Pi Kubernetes cluster with OpenTelemetry Collector, Jaeger, VictoriaMetrics, and Loki."
+tags: ["OpenTelemetry", "Jaeger", "Loki", "Prometheus", "Observability"]
+categories: ["RPi Kubernetes"]
+---
+
+## The Three Pillars on a Pi Cluster
+
+Production observability requires three signal types: metrics (what happened), logs (why it happened), and traces (how it happened). The RPi Kubernetes project deploys a complete stack across the `observability` namespace.
+
+## OpenTelemetry Collector
+
+The OTel Collector is the backbone -- a vendor-neutral pipeline that receives, processes, and exports telemetry data. It runs as a DaemonSet so every node has a local collector:
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-collector
+  namespace: observability
+spec:
+  template:
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:latest
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol/config.yaml
+              subPath: config.yaml
+```
+
+The collector configuration defines receivers, processors, and exporters:
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'kubernetes-pods'
+          kubernetes_sd_configs:
+            - role: pod
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      memory: {}
+      disk: {}
+      network: {}
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+  memory_limiter:
+    limit_mib: 256
+
+exporters:
+  jaeger:
+    endpoint: jaeger.observability:14250
+  prometheusremotewrite:
+    endpoint: http://victoriametrics.observability:8428/api/v1/write
+  loki:
+    endpoint: http://loki.observability:3100/loki/api/v1/push
+```
+
+Applications send OTLP data to their local collector, which batches, processes, and fans out to the appropriate backends.
+
+## Jaeger: Distributed Tracing
+
+Jaeger stores and visualizes traces. When an agent execution spans multiple services (LLM inference, tool calls, vector search), Jaeger shows the complete request path with timing breakdowns.
+
+On the Pi cluster, Jaeger runs in all-in-one mode with in-memory storage. For longer retention, you'd switch to a Cassandra or Elasticsearch backend, but for a homelab the in-memory store is simpler.
+
+## VictoriaMetrics: Long-Term Metrics
+
+VictoriaMetrics replaces Prometheus for long-term metric storage. It's more memory-efficient (critical on 8GB nodes) and supports Prometheus's query language (PromQL) and remote write protocol.
+
+The kube-prometheus-stack Helm chart provides Prometheus for scraping, Grafana for dashboards, and Alertmanager for alerts. VictoriaMetrics sits behind Prometheus as a long-term store via remote write.
+
+## Loki: Log Aggregation
+
+Loki aggregates logs from all pods in the cluster. Unlike Elasticsearch, Loki only indexes metadata (labels), not the log content itself. This makes it dramatically cheaper in terms of storage and memory.
+
+```yaml
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+```
+
+Logs are queried through Grafana using LogQL:
+
+```
+{namespace="ml-platform", app="mlflow"} |= "error" | json | level="ERROR"
+```
+
+## Grafana Dashboards
+
+Grafana ties everything together with dashboards for:
+
+- **Cluster health** -- Node CPU, memory, disk, network across all Pis
+- **Pod metrics** -- Resource usage per service, restart counts, OOMKills
+- **ML metrics** -- Training job durations, model inference latency, queue depths
+- **Traces** -- Jaeger trace search and visualization embedded in Grafana
+
+## LLM-Powered Trace Analysis
+
+One unique feature is the `analyze-traces.py` script that uses Ollama to analyze Jaeger traces. It pulls traces for slow or failed requests, sends the trace data to a local LLM, and gets natural-language explanations of what went wrong and how to fix it.
+
+## Resource Budget
+
+The complete observability stack consumes approximately:
+
+| Service | Memory | CPU |
+|---------|--------|-----|
+| OTel Collector (per node) | 256MB | 0.25 |
+| Jaeger | 512MB | 0.5 |
+| VictoriaMetrics | 512MB | 0.5 |
+| Loki | 256MB | 0.25 |
+| Prometheus | 512MB | 0.5 |
+| Grafana | 256MB | 0.25 |
+
+About 2.3GB total, spread across nodes. Affordable on a 5-node cluster with 40GB aggregate RAM.
+

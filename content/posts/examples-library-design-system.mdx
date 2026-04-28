@@ -1,0 +1,63 @@
+---
+title: "How I Structured the 42-Topic Examples Library"
+date: 2026-04-09T09:00:00+00:00
+description: "Design decisions behind the Agentic Assistants examples library and why the 42-topic layout scales better than a single giant demo."
+tags: ["Agentic Assistants", "Examples", "Python", "MLOps", "Education"]
+categories: ["Agentic Assistants"]
+---
+
+## Why This Needed Structure
+
+The examples directory in `agentic_assistants` grew quickly. Once I crossed a handful of demos, the old pattern of "drop another script in a folder" stopped being useful. Readers could not tell which file solved which problem, and I kept re-explaining the same setup steps.
+
+The shift was to treat examples as a **library**, not a dumping ground. The `examples/library/README.md` now defines 42 topic areas, grouped by concern: data modeling, orchestration, deep learning, evaluation, synthetic data, and observability.
+
+## What Changed
+
+A major update expanded the library into clearly named domains such as:
+
+- `pydantic_models/` for schema and validation patterns
+- `langgraph_workflows/` and `crewai_patterns/` for orchestration styles
+- `pytorch_foundations/`, `transformers_hub/`, and `unsloth_finetuning/` for model work
+- `mlflow_tracking/`, `airflow_workflows/`, `dvc_versioning/` for MLOps
+
+That update turned examples into something searchable and teachable. I can now point directly to one folder for one concept instead of asking readers to reverse engineer intent.
+
+## The Design Rule That Helped Most
+
+Every script is self-contained and runnable. The README sets a consistent contract:
+
+```bash
+pip install "agentic-assistants[library]"
+python examples/library/langgraph_workflows/basic_state_graph.py
+```
+
+This is simple, but it matters. If examples need hidden setup, they are no longer examples, they are mini-projects.
+
+## Why I Kept Library And Starters Separate
+
+I intentionally split `examples/library/` and `examples/starters/`.
+
+- **Library** = focused patterns, usually one file, one concept.
+- **Starters** = opinionated project skeletons with config, runtime flow, and docs.
+
+That separation avoids a common OSS failure mode where beginner snippets and full project templates become indistinguishable.
+
+## What I Learned
+
+Three things made the difference:
+
+1. **Explicit taxonomy beats clever naming.** Folder names are boring on purpose.
+2. **Runnable-by-default examples reduce support load.** Fewer "it does not run" issues.
+3. **A central README acts as a map.** Without it, examples do not compound into a learning path.
+
+## Practical Takeaway
+
+If your repo has more than 10 examples, stop and design an example system before adding more. The 42-topic map in `examples/library/README.md` is less about quantity and more about preserving clarity as scope grows.
+
+## Related Reading
+
+- [/posts/building-agentic-assistants/](/posts/building-agentic-assistants/)
+- [/posts/local-rag-coding-assistant/](/posts/local-rag-coding-assistant/)
+- [/posts/multi-agent-crewai-langgraph/](/posts/multi-agent-crewai-langgraph/)
+

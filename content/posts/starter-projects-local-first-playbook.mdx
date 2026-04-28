@@ -1,0 +1,64 @@
+---
+title: "Choosing the Right Starter Project in a Local-First Stack"
+date: 2026-04-11T09:00:00+00:00
+description: "A practical guide to selecting the right Agentic Assistants starter based on latency, memory, retrieval quality, and operational complexity."
+tags: ["Agentic Assistants", "RAG", "Starters", "Local AI", "Architecture"]
+categories: ["Agentic Assistants"]
+---
+
+## Starters Are Product Decisions
+
+`examples/starters/README.md` lists several starter projects, but the real value is not the list itself. The value is matching each starter to a production pain point.
+
+I use this mapping:
+
+- `local-rag-studio` when speed-to-first-answer matters
+- `multilevel-storage-kb` when retrieval cost and memory tiers matter
+- `hybrid-cache-rag-assistant` when latency is the hard requirement
+- `rag-eval-playground` when teams need measurable quality loops
+- `repo-intel-hub` when source-of-truth is a codebase, not documents
+
+## What Changed Recently
+
+The starter set expanded and was formalized through:
+
+- dedicated `README.md` per starter
+- `config.yaml` for each starter
+- an index file in `examples/starters/starter_manifest.yaml`
+
+This turned "example apps" into reusable starting points with consistent layout.
+
+## A Selection Framework That Works
+
+Before I pick a starter, I force these three questions:
+
+1. Is the bottleneck **latency**, **quality**, or **governance**?
+2. Is the primary corpus documents, code, or mixed assets?
+3. Do I need day-one evaluation metrics or can they come later?
+
+Those answers usually select one starter immediately.
+
+## Why This Beats Building From Scratch
+
+Starting from zero encourages accidental architecture.
+
+Starting from a known starter gives:
+
+- known config shape
+- known runtime flow
+- known extension points
+
+It also improves handoff. Teammates can compare two starter configs much faster than they can reverse engineer one-off glue code.
+
+## Practical Takeaway
+
+Treat starter selection like infrastructure selection. Picking the wrong starter is often more expensive than writing custom code later.
+
+If you are unsure, start with `local-rag-studio`, then migrate to `hybrid-cache-rag-assistant` or `multilevel-storage-kb` once you can measure latency and recall tradeoffs.
+
+## Related Reading
+
+- [/posts/local-rag-coding-assistant/](/posts/local-rag-coding-assistant/)
+- [/posts/building-agentic-assistants/](/posts/building-agentic-assistants/)
+- [/posts/examples-library-design-system/](/posts/examples-library-design-system/)
+

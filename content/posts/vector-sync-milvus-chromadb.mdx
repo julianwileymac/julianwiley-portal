@@ -1,0 +1,55 @@
+---
+title: "Vector Sync Recipe: Dual-Writing to Milvus and ChromaDB"
+date: 2026-05-02T09:00:00+00:00
+description: "How the vector sync pipeline in rpi_kubernetes coordinates chunking, embedding, and dual vector-store writes with audit logging."
+tags: ["RPi Kubernetes", "Milvus", "ChromaDB", "Vector Search", "Argo Workflows"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why Dual-Write Vectors
+
+`docs/data-pipeline-recipes.md` includes a vector sync workflow that writes to both Milvus and ChromaDB.
+
+That may look redundant, but it is a practical platform strategy:
+
+- ChromaDB for lightweight iteration
+- Milvus for higher-scale production-style behavior
+
+Running both lets teams compare behavior without changing upstream ingestion logic.
+
+## Workflow Intent
+
+The recipe performs:
+
+1. load source payload from MinIO
+2. chunk and embed text
+3. write vectors into target collection
+4. persist audit metadata to PostgreSQL (`pipeline_vector_audit`)
+
+The audit write is especially important because it gives traceability when vector quality or retrieval relevance drifts.
+
+## Hardening Work Left
+
+The docs correctly call out two critical TODOs:
+
+- replace fallback embeddings with production model endpoint
+- pin embedding model versions and re-embedding strategy
+
+Those two controls determine long-term retrieval consistency.
+
+## Operational Value
+
+This recipe makes vector ingestion measurable. Instead of hoping embeddings are fresh, operators can query audit tables and verify pipeline activity.
+
+That closes a common observability gap in RAG systems.
+
+## Practical Takeaway
+
+If your retrieval stack spans dev and prod vector stores, build one sync pipeline with explicit audit writes. You will need that history when quality investigations start.
+
+## Related Reading
+
+- [/posts/vector-databases-edge/](/posts/vector-databases-edge/)
+- [/posts/cdc-sync-watermark-strategy/](/posts/cdc-sync-watermark-strategy/)
+- [/posts/pipeline-recipe-raw-ingest-minio/](/posts/pipeline-recipe-raw-ingest-minio/)
+

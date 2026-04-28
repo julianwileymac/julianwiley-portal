@@ -1,0 +1,82 @@
+---
+title: "Building a Local RAG Coding Assistant with mem0"
+date: 2026-02-17T09:00:00+00:00
+description: "A deep dive into the local coding assistant example -- RAG over codebases, episodic memory with mem0, and Redis solution caching."
+tags: ["RAG", "Coding Assistant", "Vector Database", "mem0", "Redis"]
+categories: ["Agentic Assistants"]
+---
+
+## The Problem with Cloud Coding Assistants
+
+Cloud-based coding assistants send your code to external servers. For many organizations, this is a non-starter -- proprietary codebases, compliance requirements, and the simple desire to keep intellectual property local.
+
+The local coding assistant (`examples/local-coding-assistant/`) provides a fully offline alternative: RAG over your codebase, persistent memory, and solution caching, all running on your hardware.
+
+## Codebase Indexing
+
+The first step is building a searchable index of your codebase. The indexer (`src/agentic_assistants/indexing/`) processes source files through a pipeline:
+
+1. **Parse** -- Extract functions, classes, and modules with AST-level understanding
+2. **Chunk** -- Split code into semantically meaningful segments (not arbitrary line counts)
+3. **Embed** -- Generate vector embeddings using Ollama's `nomic-embed-text` model
+4. **Store** -- Index into ChromaDB with rich metadata (file path, language, symbol type)
+
+```python
+indexer = CodebaseIndexer(
+    vector_store="chromadb",
+    embedding_model="nomic-embed-text",
+    chunk_strategy="semantic",
+    languages=["python", "typescript", "yaml"]
+)
+indexer.index_directory("./src", recursive=True)
+```
+
+The semantic chunking is key -- it respects function and class boundaries rather than splitting mid-logic, which significantly improves retrieval quality.
+
+## RAG Pipeline
+
+When you ask a question, the retrieval pipeline:
+
+1. Embeds the query using the same model used for indexing
+2. Retrieves the top-k most relevant code chunks from ChromaDB
+3. Ranks results using a combination of vector similarity and keyword overlap
+4. Constructs a prompt with the retrieved context and your question
+5. Sends the augmented prompt to Ollama for completion
+
+## Episodic Memory with mem0
+
+The coding assistant uses [mem0](https://github.com/mem0ai/mem0) for episodic memory -- it remembers context from previous conversations. If you discussed a specific architectural decision last week, the assistant can recall it without you re-explaining.
+
+```yaml
+memory:
+  provider: mem0
+  config:
+    vector_store: chromadb
+    collection: coding_assistant_memory
+    auto_summarize: true
+    retention_days: 90
+```
+
+Memory entries are automatically summarized and tagged, so retrieval stays fast even as the memory store grows.
+
+## Redis Solution Cache
+
+When the assistant generates a solution to a coding problem, it caches the question-answer pair in Redis. If a similar question comes up later (from you or a teammate), it can return the cached solution instantly rather than regenerating it.
+
+The cache uses semantic similarity for lookup, not exact string matching. So "how do I read a CSV in pandas" and "loading CSV files with pandas" would hit the same cache entry.
+
+## Agent Workflows
+
+The assistant supports multi-step workflows through CrewAI:
+
+- **Code Review** -- Analyze a diff, identify issues, suggest improvements
+- **Documentation** -- Generate docstrings and README sections from code
+- **Refactoring** -- Suggest and apply refactoring patterns
+- **Bug Investigation** -- Trace through code paths to diagnose reported issues
+
+Each workflow is a crew of specialized agents that collaborate on the task.
+
+## Performance
+
+On my development machine (RTX 3080, 32GB RAM), the assistant achieves sub-second retrieval and 2-5 second response times for most queries using Mistral 7B through Ollama. The codebase index for a ~50K line project takes about 3 minutes to build and under a second to query.
+

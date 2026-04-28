@@ -1,0 +1,63 @@
+---
+title: "Removing Langflow from Extras: A Dependency Conflict Postmortem"
+date: 2026-04-16T09:00:00+00:00
+description: "What we learned from removing Langflow from optional extras due to cachetools conflicts with MLflow and how to handle similar packaging tradeoffs."
+tags: ["Agentic Assistants", "Python", "Dependencies", "MLflow", "Packaging"]
+categories: ["Agentic Assistants"]
+---
+
+## The Conflict
+
+In `agentic_assistants/pyproject.toml`, there is a blunt but useful comment: Langflow was removed from optional extras because of an irreconcilable `cachetools` version conflict with MLflow.
+
+This is exactly the kind of packaging decision that deserves documentation, because users feel it immediately during install.
+
+## Why This Was The Right Call
+
+When dependency conflicts are structural, pretending they are temporary increases user pain.
+
+Removing the extra and documenting an external install path (`pipx install langflow`) did three things:
+
+1. protected the main environment from repeated breakage
+2. preserved MLflow stability for core workflows
+3. kept the integration path available for users who explicitly want it
+
+## A Better Failure Mode
+
+There are two bad options in this scenario:
+
+- keep both and let installs fail unpredictably
+- silently pin transitive packages and create hard-to-debug runtime behavior
+
+The repo chose a better failure mode: explicit incompatibility and explicit workaround.
+
+## What I Changed In My Own Workflow
+
+After this conflict, I now classify dependencies into:
+
+- **core required**
+- **safe optional**
+
+and
+
+- **high-risk optional** (tooling that should run in isolated envs)
+
+That policy has reduced friction when adding new integrations.
+
+## Practical Playbook
+
+If you hit the same pattern:
+
+1. document the conflict in the package file
+2. remove the problematic extra from default workflows
+3. provide an isolated install recommendation
+4. revisit only when upstream versions converge
+
+This keeps contributors productive while avoiding dependency roulette.
+
+## Related Reading
+
+- [/posts/poetry-extras-modular-architecture/](/posts/poetry-extras-modular-architecture/)
+- [/posts/examples-library-install-extras-strategy/](/posts/examples-library-install-extras-strategy/)
+- [/posts/mlops-mlflow-opentelemetry/](/posts/mlops-mlflow-opentelemetry/)
+

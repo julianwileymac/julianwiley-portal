@@ -1,0 +1,51 @@
+---
+title: "Pipeline Recipe 3: Hybrid Dagster to Argo Heavy Transform"
+date: 2026-05-01T09:00:00+00:00
+description: "How rpi_kubernetes uses Dagster for control and lineage while delegating heavyweight transforms to Argo WorkflowTemplates."
+tags: ["RPi Kubernetes", "Dagster", "Argo Workflows", "MLOps", "Data Pipeline"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why Hybrid Orchestration
+
+No single orchestration engine is best at everything.
+
+In `rpi_kubernetes/docs/data-pipeline-recipes.md`, the hybrid recipe uses Dagster for orchestration control and asset context, then triggers Argo for cluster-native heavy transforms.
+
+## The Recipe Shape
+
+The flow is:
+
+1. Dagster materializes `hybrid_argo_heavy_transform`
+2. that asset submits Argo template `pipeline-heavy-transform`
+3. status is surfaced back for operational visibility
+
+This combines lineage-friendly control with robust Kubernetes-native execution.
+
+## Why This Works In Practice
+
+Dagster is strong for asset relationships and scheduling intent.
+Argo is strong for containerized task execution at cluster level.
+
+Keeping each tool in its strength zone reduces orchestration complexity and improves failure handling.
+
+## What To Watch
+
+Hybrid systems need clear boundaries. I recommend deciding up front:
+
+- which layer owns retry policy
+- where run metadata is canonical
+- how failure states are surfaced to operators
+
+The recipe TODOs already point toward stronger retry/timeout/resource-class controls.
+
+## Practical Takeaway
+
+If your workloads include both lineage-heavy orchestration and compute-heavy Kubernetes tasks, a Dagster+Argo split is often cleaner than forcing one tool to do both poorly.
+
+## Related Reading
+
+- [/posts/dagster-on-homelab-k3s/](/posts/dagster-on-homelab-k3s/)
+- [/posts/argo-events-crd-discovery-lessons/](/posts/argo-events-crd-discovery-lessons/)
+- [/posts/pipeline-recipe-raw-ingest-minio/](/posts/pipeline-recipe-raw-ingest-minio/)
+

@@ -1,0 +1,69 @@
+---
+title: "Poetry Extras as Architecture Boundaries"
+date: 2026-04-14T09:00:00+00:00
+description: "Why the extras layout in pyproject.toml became an architectural tool, not just a packaging convenience, in Agentic Assistants."
+tags: ["Agentic Assistants", "Poetry", "Architecture", "Python", "Dependencies"]
+categories: ["Agentic Assistants"]
+---
+
+## Packaging Usually Follows Architecture
+
+In many projects, dependency files simply mirror what code already did.
+
+In `agentic_assistants`, `pyproject.toml` moved in the other direction: extras started shaping architecture. Distinct groups like `dagster`, `orchestration`, `nemotron`, `evaluation`, and `library` signal where the platform can stay modular.
+
+## Why This Matters
+
+A local-first AI framework touches many ecosystems:
+
+- training stacks
+- orchestration engines
+- vector infrastructure
+- evaluation frameworks
+
+If all dependencies are mandatory, every environment becomes brittle and onboarding slows down.
+
+Extras keep core workflows lean while still exposing advanced capability gates.
+
+## The Practical Benefit
+
+I can now run environment-specific installs:
+
+```bash
+poetry install -E dagster
+poetry install -E nemotron
+poetry install -E library
+```
+
+This makes it easier to match dependencies to use-case:
+
+- docs and examples laptop
+- orchestration node
+- model tuning node
+
+## The Tradeoff
+
+More extras means more combinatorics. You need clear docs and compatibility tests, or users will discover broken combinations first.
+
+The repository addresses this by documenting install paths in both main docs and example READMEs, and by keeping a stable core dependency set.
+
+## Architecture Signal In One File
+
+The extras map also communicates product shape:
+
+- what is first-class
+- what is optional
+- where integration seams live
+
+That helps contributors reason about scope before they touch implementation.
+
+## Practical Takeaway
+
+Use extras to encode boundaries your codebase already needs. If your platform spans multiple domains, packaging can be one of the cleanest ways to communicate and enforce modularity.
+
+## Related Reading
+
+- [/posts/examples-library-install-extras-strategy/](/posts/examples-library-install-extras-strategy/)
+- [/posts/building-agentic-assistants/](/posts/building-agentic-assistants/)
+- [/posts/custom-llm-training/](/posts/custom-llm-training/)
+

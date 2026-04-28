@@ -1,0 +1,93 @@
+---
+title: "Building a Raspberry Pi 5 Kubernetes Cluster"
+date: 2026-01-14T09:00:00+00:00
+description: "A complete guide to building a 4-node Raspberry Pi 5 Kubernetes cluster with k3s and an Ubuntu desktop as a hybrid control plane."
+tags: ["Raspberry Pi", "Kubernetes", "k3s", "Homelab", "ARM64"]
+categories: ["RPi Kubernetes"]
+---
+
+## Why Raspberry Pi for Kubernetes?
+
+Cloud Kubernetes is convenient but expensive for learning and experimentation. A Raspberry Pi cluster gives you real multi-node Kubernetes experience -- network partitions, node failures, resource constraints, ARM architecture quirks -- for under $400.
+
+This project runs a 4-node RPi5 cluster with an Ubuntu desktop as a hybrid control plane, serving as a platform for ML workloads, observability, and model serving.
+
+## Hardware
+
+| Component | Spec | Qty |
+|-----------|------|-----|
+| Raspberry Pi 5 | 8GB RAM, ARM64 | 4 |
+| Control Plane | Ubuntu Desktop, x86_64 | 1 |
+| NVMe HATs | For RPi5 boot/storage | 4 |
+| PoE+ HATs | Power over Ethernet | 4 |
+| PoE Switch | 8-port gigabit | 1 |
+| USB SSDs | External storage per node | 4 |
+
+The control plane is an Ubuntu desktop that doubles as a workstation. It runs the k3s server, handles GPU workloads (model training and inference), and hosts heavier services that would overwhelm the Pi nodes.
+
+## Why k3s
+
+Standard Kubernetes (kubeadm) has a 2GB RAM minimum for the control plane alone. With 8GB per Pi, that's 25% of each node's resources just for overhead. k3s strips Kubernetes down to essentials -- it uses SQLite instead of etcd, bundles the container runtime, and runs as a single binary under 100MB.
+
+```bash
+# Server (control plane)
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.29.0+k3s1" sh -s - server \
+  --write-kubeconfig-mode 644 \
+  --disable traefik \
+  --flannel-backend=vxlan
+
+# Agent (worker nodes)
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.29.0+k3s1" sh -s - agent \
+  --server https://control-plane.local:6443 \
+  --token $K3S_TOKEN
+```
+
+## Network Architecture
+
+The cluster uses a flat network with mDNS for discovery:
+
+```
+                 ┌─────────────────┐
+                 │  Ubuntu Desktop  │
+                 │  Control Plane   │
+                 │  192.168.1.x     │
+                 └────────┬────────┘
+                          │
+              ┌───────────┼───────────┐
+              │     PoE Switch        │
+              ├───┬───┬───┬───┬───────┤
+              │   │   │   │   │
+           ┌──┴─┐┌┴──┐┌┴──┐┌┴──┐
+           │Pi-1││Pi-2││Pi-3││Pi-4│
+           └────┘└────┘└────┘└────┘
+```
+
+MetalLB provides LoadBalancer services, and ingress-nginx handles HTTP routing. No static IPs required -- Avahi/mDNS handles node discovery (covered in a separate post).
+
+## Networking Add-ons
+
+After k3s is running, the cluster needs:
+
+- **MetalLB** -- Bare-metal load balancer for `LoadBalancer` service type
+- **ingress-nginx** -- HTTP/HTTPS ingress controller
+- **cert-manager** -- Automated TLS certificates
+
+## Namespace Organization
+
+Services are organized into logical namespaces:
+
+```
+data-services    -- MinIO, PostgreSQL, ChromaDB, Milvus
+ml-platform      -- MLFlow, JupyterHub, Dask, Ray
+observability    -- Prometheus, Grafana, Jaeger, Loki
+mlops            -- Argo Workflows, BentoML
+management       -- Control panel API and UI
+development      -- Dev tools and scratch space
+```
+
+This keeps resource quotas, network policies, and RBAC cleanly separated.
+
+## What's Running
+
+The cluster runs a full ML platform stack: experiment tracking (MLFlow), distributed compute (Dask, Ray), vector databases (ChromaDB, Milvus), observability (Prometheus, Grafana, Jaeger, Loki), workflow orchestration (Argo Workflows), and model serving (BentoML). Each of these gets a deeper dive in subsequent posts.
+

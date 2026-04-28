@@ -1,0 +1,76 @@
+---
+title: "Installing Only What You Need: Extras Strategy for the Examples Library"
+date: 2026-04-10T09:00:00+00:00
+description: "How the Agentic Assistants examples library uses Poetry extras to keep installs lightweight while still supporting a broad set of workflows."
+tags: ["Agentic Assistants", "Poetry", "Dependencies", "Python", "Examples"]
+categories: ["Agentic Assistants"]
+---
+
+## The Dependency Problem
+
+A large examples library is useful right up until install time.
+
+If every user has to install every optional package just to run one script, examples become expensive and fragile. In `agentic_assistants`, the dependency surface is intentionally broad: orchestration stacks, training tools, vector stores, evaluation frameworks, and more.
+
+The fix was not fewer examples. The fix was better packaging.
+
+## The Extras Model
+
+The root `pyproject.toml` defines focused extras such as:
+
+- `library`
+- `classical-ml`
+- `evaluation`
+- `airflow`
+- `serving`
+- `dagster`
+- `nemotron`
+
+That lets readers install the smallest useful subset:
+
+```bash
+pip install "agentic-assistants[classical-ml]"
+pip install "agentic-assistants[evaluation]"
+```
+
+or everything tied to the examples corpus:
+
+```bash
+pip install "agentic-assistants[library]"
+```
+
+## Why This Works Better Than One Big Install
+
+This pattern gives me two operational wins:
+
+1. **Faster onboarding** for targeted learning paths
+2. **Fewer cross-package conflicts** because unrelated stacks are isolated
+
+It also makes docs clearer. The examples README can state exactly which extra maps to which category rather than hand-waving around install complexity.
+
+## Docs As Interface
+
+The install section in `examples/library/README.md` is as important as the code itself. It translates dependency architecture into concrete commands. Without that bridge, extras become an implementation detail users never discover.
+
+I now treat the README as a product surface:
+
+- category -> extra
+- extra -> install command
+- install command -> runnable script
+
+## Practical Rule I Reuse
+
+When a repo contains both beginner scripts and advanced pipelines:
+
+- keep a slim core dependency set
+- expose domain extras
+- document extras where examples live, not only in packaging files
+
+This pattern scales better than adding ad-hoc setup notes to each script.
+
+## Related Reading
+
+- [/posts/examples-library-design-system/](/posts/examples-library-design-system/)
+- [/posts/custom-llm-training/](/posts/custom-llm-training/)
+- [/posts/mlops-mlflow-opentelemetry/](/posts/mlops-mlflow-opentelemetry/)
+

@@ -1,0 +1,53 @@
+---
+title: "Dagster API Fallbacks: Surviving Partial Availability"
+date: 2026-04-21T09:00:00+00:00
+description: "A closer look at how the Dagster API in Agentic Assistants handles local import gaps and external GraphQL fallback paths."
+tags: ["Agentic Assistants", "Dagster", "FastAPI", "GraphQL", "Reliability"]
+categories: ["Agentic Assistants"]
+---
+
+## Reliability Starts At The API Edge
+
+`src/agentic_assistants/server/api/dagster.py` has a pattern I wish more integrations used: graceful degradation when local Dagster imports are unavailable.
+
+Instead of hard failing every endpoint, the router can query external Dagster webserver GraphQL endpoints for jobs, assets, and schedules.
+
+## The Fallback Pattern
+
+The API uses:
+
+- candidate URL resolution (`DAGSTER_WEBSERVER_URL`, `DAGSTER_GRAPHQL_URL`, local defaults)
+- liveness checks for reachable webserver endpoints
+- GraphQL query helpers for core list views
+
+That means a partially configured environment can still provide useful read operations.
+
+## Why This Matters
+
+In dev and mixed deployments, it is common for:
+
+- local package extras to be missing
+- remote Dagster webserver to be healthy
+- users to need quick visibility before full setup
+
+Fallback behavior keeps the control panel useful during those states.
+
+## A Good Compromise
+
+Write operations that require local runtime (like full local execution paths) still fail fast when Dagster is unavailable. Read paths degrade more gracefully.
+
+That distinction is important:
+
+- avoid false confidence for mutating operations
+- preserve observability and inspection paths
+
+## Practical Takeaway
+
+If your API wraps an optional platform dependency, design separate reliability strategies for reads and writes. The Dagster router here is a strong reference implementation.
+
+## Related Reading
+
+- [/posts/dagster-integration-control-plane/](/posts/dagster-integration-control-plane/)
+- [/posts/dagster-webui-develop-jobs-workflow/](/posts/dagster-webui-develop-jobs-workflow/)
+- [/posts/mlops-mlflow-opentelemetry/](/posts/mlops-mlflow-opentelemetry/)
+

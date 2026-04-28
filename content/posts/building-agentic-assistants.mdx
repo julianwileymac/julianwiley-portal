@@ -1,0 +1,54 @@
+---
+title: "Building Agentic Assistants: A Local-First AI Framework"
+date: 2026-01-10T09:00:00+00:00
+description: "An overview of the Agentic Assistants framework -- a local-first platform for multi-agent AI, custom LLM training, and MLOps."
+tags: ["AI", "Multi-Agent", "LLM", "Framework", "Python"]
+categories: ["Agentic Assistants"]
+---
+
+## Why Another AI Framework?
+
+The AI tooling landscape is fragmented. You need one library to orchestrate agents, another to fine-tune models, a third for experiment tracking, and yet another for deployment. Agentic Assistants was born from the frustration of stitching these pieces together for every project.
+
+The goal: a single, local-first platform that handles the entire LLM lifecycle -- from training and alignment to multi-agent orchestration and production serving -- without depending on third-party SaaS platforms.
+
+## Architecture
+
+The framework follows a layered design with three entry points:
+
+```
+Entry Points (CLI, Web UI, Python API)
+    -> FastAPI Backend (REST, WebSocket, MCP)
+        -> AgenticEngine (sessions, indexing, search)
+            -> LLM Lifecycle (training, RL, serving)
+            -> Data Layer (vector stores, knowledge bases, datasets)
+                -> External (Ollama, MLFlow, HuggingFace)
+```
+
+At the core sits `AgenticEngine`, a facade class that manages sessions, codebase indexing, semantic search, and chat completions through a unified interface. Everything flows through this engine, whether invoked from the CLI, the Next.js web UI, or directly via the Python API.
+
+## Key Design Decisions
+
+**Adapter pattern for agent frameworks.** Rather than coupling to a single agent library, each framework (CrewAI, LangGraph, AutoGen, Agno, Google ADK) gets its own adapter module under `src/agentic_assistants/adapters/`. This means swapping orchestration backends is a config change, not a rewrite.
+
+**Kedro-style data catalog.** The data layer borrows heavily from Kedro's catalog concept -- typed datasets with lineage tracking, layer separation (raw, intermediate, primary, feature, model), and quality validation built in. This makes pipeline reproducibility straightforward.
+
+**Local by default.** Ollama handles LLM inference, LanceDB and ChromaDB provide vector storage, and MLFlow tracks experiments. Everything runs on your machine or your cluster -- no API keys required for the core workflow.
+
+## Entry Points
+
+The CLI is built with Click and exposes commands for every major operation:
+
+```bash
+agentic server start          # Launch the FastAPI backend
+agentic run crew my_crew      # Execute a CrewAI workflow
+agentic train start config.yaml  # Start a fine-tuning job
+agentic index ./src           # Index a codebase for RAG
+```
+
+The web UI (a Next.js app under `webui/`) provides a visual control panel for managing projects, agents, flows, pipelines, and Kubernetes deployments.
+
+## What's Next
+
+In upcoming posts, I'll dive deep into specific subsystems: the multi-agent adapters, the training pipeline, RLHF/DPO alignment, data orchestration with Dagster, and deployment patterns from Docker Compose to Kubernetes.
+

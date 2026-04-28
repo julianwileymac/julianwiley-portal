@@ -1,0 +1,59 @@
+---
+title: "Evaluating Nemotron Fine-Tunes with HumanEval and MBPP"
+date: 2026-04-24T09:00:00+00:00
+description: "How the Nemotron coding assistant workflow evaluates local fine-tunes with practical coding benchmarks and code-quality metrics."
+tags: ["Agentic Assistants", "Nemotron", "Evaluation", "HumanEval", "MBPP"]
+categories: ["Agentic Assistants"]
+---
+
+## Training Without Evaluation Is Guessing
+
+The Nemotron coding assistant example includes explicit benchmark targets in config:
+
+- HumanEval
+- MBPP
+- custom coding tasks
+
+That alone is a strong design signal. It frames fine-tuning as a measurable engineering process, not only a qualitative prompt exercise.
+
+## Metrics That Matter
+
+The evaluation section in `examples/nemotron-coding-assistant/config.yaml` tracks:
+
+- `pass@k`
+- syntax correctness
+- code style
+- execution success
+- BLEU and CodeBLEU
+
+This mixed metric set is practical. It balances functional correctness and output quality.
+
+## Why Multiple Benchmarks
+
+HumanEval and MBPP expose different failure modes:
+
+- one stresses synthesis under strict functional checks
+- the other catches more practical task variability
+
+Using both reduces overfitting to one benchmark style and gives better confidence before deployment.
+
+## The Production Habit
+
+I strongly recommend pairing every training run with:
+
+1. config snapshot
+2. benchmark results
+3. promoted model tag only after threshold checks
+
+The example’s structure (training and evaluation modules plus experiment scripts) supports that workflow cleanly.
+
+## Practical Takeaway
+
+If your coding model cannot pass a stable local benchmark loop, it is not ready for broader rollout. Benchmark discipline is what turns model tuning from exploration into production engineering.
+
+## Related Reading
+
+- [/posts/nemotron-training-config-playbook/](/posts/nemotron-training-config-playbook/)
+- [/posts/custom-llm-training/](/posts/custom-llm-training/)
+- [/posts/rag-eval-playground-practical-loop/](/posts/rag-eval-playground-practical-loop/)
+

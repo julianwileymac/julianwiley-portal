@@ -1,0 +1,51 @@
+---
+title: "WebUI Package Upgrades: Why Next.js 16 and React Flow Matter"
+date: 2026-04-15T09:00:00+00:00
+description: "A practical look at the WebUI dependency updates in Agentic Assistants and how they unlocked richer model and pipeline interactions."
+tags: ["Agentic Assistants", "Next.js", "React", "WebUI", "Dependencies"]
+categories: ["Agentic Assistants"]
+---
+
+## Dependency Updates With Product Impact
+
+The WebUI update was not just version churn. In `webui/package.json`, upgrades like `next: 16.1.1` and `@xyflow/react` support enabled visible product behavior:
+
+- richer graph editing experiences
+- smoother dashboard interactions
+- clearer separation between pages and reusable UI components
+
+## Why `@xyflow/react` Was Important
+
+Graph UX is now central to two areas:
+
+- pipeline visualization
+- model architecture editing
+
+Without a mature graph library, these interfaces are difficult to maintain and harder to extend. React Flow provides a practical baseline for nodes, edges, drag-and-drop, controls, and minimap behavior.
+
+## Framework Upgrades Need Discipline
+
+Upgrading a Next.js app in a feature-heavy control panel requires careful handling of:
+
+- route behavior
+- API client assumptions
+- build and static asset scripts
+
+The recent commits show this was handled alongside script updates (`scripts/build-webui-dist.*`, `next.config.ts`) rather than as an isolated dependency bump.
+
+## The Real Lesson
+
+For UI-heavy ML tooling, package updates should be justified by interaction improvements, not just freshness.
+
+In this case, the dependency changes supported concrete features like architecture graph tooling and expanded orchestration views.
+
+## Practical Takeaway
+
+If your frontend supports technical workflows, tie dependency updates to user-visible capability milestones. It makes upgrades easier to prioritize and easier to validate.
+
+## Related Reading
+
+- [/posts/docker-to-kubernetes-deployment/](/posts/docker-to-kubernetes-deployment/)
+- [/posts/cluster-management-dashboard/](/posts/cluster-management-dashboard/)
+- [/posts/drag-drop-neural-builder-reactflow/](/posts/drag-drop-neural-builder-reactflow/)
+
