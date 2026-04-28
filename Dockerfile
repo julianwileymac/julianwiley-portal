@@ -29,7 +29,11 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# `--legacy-peer-deps` lets `@ant-design/v5-patch-for-react-19` (peer: React >=19)
+# coexist with the React 18 pin in package.json. The patch is a no-op on the
+# pinned React 18 runtime and silences the antd v5 compat warning Next 15.5
+# triggers because Next ships React 19 to the browser internally.
+RUN npm ci --no-audit --no-fund --legacy-peer-deps
 
 # -----------------------------------------------------------------------------
 # 2. builder — compile the Next.js app
